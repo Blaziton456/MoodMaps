@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MoodMap – Reset Password</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --accent:#a78bfa;
+    --accent2:#22d3ee;
+    --text:rgba(255,255,255,0.92);
+    --muted:rgba(255,255,255,0.62);
+    --stroke:rgba(255,255,255,0.16);
+    --glass:rgba(255,255,255,0.10);
+    --glass2:rgba(255,255,255,0.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    height:100vh;display:flex;justify-content:center;align-items:center;
+    font-family:Inter,system-ui;color:var(--text);
+    background: radial-gradient(circle at 20% 20%, #a78bfa55, transparent 55%),
+                radial-gradient(circle at 80% 80%, #22d3ee55, transparent 58%),
+                linear-gradient(120deg,#020617,#0f172a);
+    overflow:hidden;
+  }
+
+  .blob{position:fixed;width:520px;height:520px;border-radius:999px;filter:blur(55px);opacity:.55;z-index:-2;animation: float 10s ease-in-out infinite;}
+  .b1{left:-150px;top:-170px;background:#a78bfa;}
+  .b2{right:-180px;top:120px;background:#22d3ee;animation-delay:-4s}
+  .b3{left:35%;bottom:-240px;width:420px;height:420px;background:#60a5fa;animation-delay:-7s}
+  @keyframes float{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(25px,-18px) scale(1.06)}}
+
+  .card{
+    width:min(480px,92vw);
+    padding:30px 28px;border-radius:22px;
+    border:1px solid var(--stroke);
+    background: linear-gradient(180deg,var(--glass),var(--glass2));
+    backdrop-filter: blur(18px);
+    box-shadow: 0 60px 140px rgba(0,0,0,0.65);
+    animation: pop .6s cubic-bezier(.2,.9,.2,1) both;
+    transform-origin:center;
+  }
+  @keyframes pop{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+  body.page-leave .card{animation: leave .55s cubic-bezier(.2,.9,.2,1) both;}
+  @keyframes leave{to{opacity:0;transform:translateY(22px) scale(.96);filter:blur(6px)}}
+
+  .shake{animation: shake .35s ease;}
+  @keyframes shake{
+    0%{transform:translateX(0)}
+    25%{transform:translateX(-10px)}
+    50%{transform:translateX(10px)}
+    75%{transform:translateX(-6px)}
+    100%{transform:translateX(0)}
+  }
+
+  h1{font-size:22px;letter-spacing:-.2px}
+  .sub{margin-top:8px;color:var(--muted);font-size:13px;line-height:1.45}
+
+  .field{margin-top:14px}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .inputWrap{position:relative}
+  input{
+    width:100%;
+    padding:12px 46px 12px 14px;border-radius:14px;
+    border:1px solid rgba(255,255,255,0.16);
+    background: rgba(0,0,0,0.22);
+    color:white;outline:none;transition:.25s ease;
+  }
+  input:focus{border-color: rgba(34,211,238,0.46);box-shadow:0 0 0 4px rgba(34,211,238,0.12);}
+
+  .eyeBtn{
+    position:absolute;right:10px;top:50%;transform:translateY(-50%);
+    width:34px;height:34px;border-radius:12px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.18);
+    display:flex;justify-content:center;align-items:center;
+    cursor:pointer;
+  }
+  .eyeBtn svg{width:17px;height:17px;opacity:.95}
+
+  .strength{margin-top:10px;display:flex;gap:10px;align-items:center;}
+  .bar{flex:1;height:10px;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background: rgba(0,0,0,0.20);overflow:hidden;}
+  .fill{height:100%;width:0%;border-radius:999px;transition: width .25s ease;}
+  .label{font-size:12px;color:rgba(255,255,255,0.72);min-width:92px;text-align:right;font-weight:800;}
+
+  .checklist{
+    margin-top:10px;
+    display:grid;
+    gap:7px;
+    grid-template-columns: 1fr 1fr;
+    font-size:12px;
+    color:rgba(255,255,255,0.70);
+  }
+  .rule{
+    display:flex;align-items:center;gap:8px;
+    padding:8px 10px;border-radius:14px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.18);
+  }
+  .dot{
+    width:10px;height:10px;border-radius:50%;
+    background: rgba(239,68,68,0.9);
+    box-shadow: 0 0 14px rgba(239,68,68,0.25);
+    flex:0 0 auto;
+  }
+  .rule.ok .dot{
+    background: rgba(34,197,94,0.95);
+    box-shadow: 0 0 14px rgba(34,197,94,0.28);
+  }
+  .rule span{font-weight:800;color:rgba(255,255,255,0.86)}
+
+  .btn{
+    width:100%;margin-top:18px;padding:12px 14px;
+    border-radius:14px;border:none;cursor:pointer;
+    font-weight:800;color:white;
+    background: linear-gradient(135deg,var(--accent2),var(--accent));
+    box-shadow: 0 18px 60px rgba(34,211,238,0.16);
+    transition: transform .16s ease, filter .2s ease;
+  }
+  .btn:hover{transform:translateY(-2px);filter:brightness(1.06)}
+  .btn:disabled{opacity:.7;cursor:not-allowed;transform:none}
+
+  .msg{
+    margin-top:14px;padding:12px 14px;border-radius:16px;
+    border:1px solid rgba(255,255,255,0.16);
+    background: rgba(34,211,238,0.12);
+    font-size:13px;color: rgba(255,255,255,0.92);
+    display:none;line-height:1.45;
+    animation: pop2 .45s ease both;
+  }
+  @keyframes pop2{from{transform:translateY(6px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .err{margin-top:12px;color:#fca5a5;font-size:13px;display:none}
+
+  .footer{margin-top:14px;display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,0.7);}
+  a{color:#22d3ee;text-decoration:none;font-weight:800}
+  a:hover{text-decoration:underline}
+
+  .spinner{
+    width:16px;height:16px;border-radius:50%;
+    border:2px solid rgba(255,255,255,0.35);
+    border-top-color:white;display:inline-block;
+    animation: spin .8s linear infinite;vertical-align:-3px;margin-right:8px;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+
+<body>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+
+  <div class="card" id="card">
+    <h1>Reset password</h1>
+    <div class="sub">
+      Enter your email + reset code sent to your inbox, then set a new password.
+    </div>
+
+    <div class="field">
+      <label>Email</label>
+      <div class="inputWrap">
+        <input id="email" placeholder="you@example.com" style="padding-right:14px" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Reset Code</label>
+      <div class="inputWrap">
+        <input id="code" placeholder="6-digit code" inputmode="numeric" style="padding-right:14px" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>New Password</label>
+      <div class="inputWrap">
+        <input id="newpass" type="password" placeholder="Create a new password" />
+        <div class="eyeBtn" id="toggleResetPass" title="Show/Hide password">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="white" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="3" stroke="white" stroke-width="1.8"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="strength">
+        <div class="bar"><div class="fill" id="strengthFill"></div></div>
+        <div class="label" id="strengthLabel">Weak</div>
+      </div>
+
+      <div class="checklist">
+        <div class="rule" id="rLen"><div class="dot"></div><span>8+ chars</span></div>
+        <div class="rule" id="rUpper"><div class="dot"></div><span>Uppercase</span></div>
+        <div class="rule" id="rNum"><div class="dot"></div><span>Number</span></div>
+        <div class="rule" id="rSpec"><div class="dot"></div><span>Special</span></div>
+      </div>
+    </div>
+
+    <button class="btn" id="resetBtn" onclick="resetPass()">Reset password</button>
+
+    <div class="msg" id="msgBox"></div>
+    <div class="err" id="err"></div>
+
+    <div class="footer">
+      <a class="go-anim" href="/forgot" data-go="/forgot">← Back</a>
+      <a class="go-anim" href="/login" data-go="/login">Login →</a>
+    </div>
+  </div>
+
+<script>
+document.querySelectorAll(".go-anim").forEach(a=>{
+  a.addEventListener("click",(e)=>{
+    e.preventDefault();
+    const go=a.getAttribute("data-go") || a.getAttribute("href");
+    document.body.classList.add("page-leave");
+    setTimeout(()=>location.href=go, 520);
+  });
+});
+
+const card=document.getElementById("card");
+function shake(){
+  card.classList.remove("shake");
+  void card.offsetWidth;
+  card.classList.add("shake");
+}
+
+/* ✅ autofill email from forgot page */
+(function autofillEmail(){
+  const saved = localStorage.getItem("moodmap_reset_email");
+  if(saved){
+    document.getElementById("email").value = saved;
+  }
+})();
+
+const btn=document.getElementById("resetBtn");
+const err=document.getElementById("err");
+const msgBox=document.getElementById("msgBox");
+const passEl=document.getElementById("newpass");
+
+document.getElementById("toggleResetPass").addEventListener("click", ()=>{
+  passEl.type = passEl.type === "password" ? "text" : "password";
+});
+
+/* checklist */
+const rLen=document.getElementById("rLen");
+const rUpper=document.getElementById("rUpper");
+const rNum=document.getElementById("rNum");
+const rSpec=document.getElementById("rSpec");
+
+/* strength */
+const fill=document.getElementById("strengthFill");
+const label=document.getElementById("strengthLabel");
+
+function scorePassword(p){
+  let score=0;
+  if(!p) return 0;
+  if(p.length >= 6) score++;
+  if(p.length >= 10) score++;
+  if(/[A-Z]/.test(p)) score++;
+  if(/[0-9]/.test(p)) score++;
+  if(/[^A-Za-z0-9]/.test(p)) score++;
+  return Math.min(score,5);
+}
+
+function updateChecklist(p){
+  rLen.classList.toggle("ok", p.length >= 8);
+  rUpper.classList.toggle("ok", /[A-Z]/.test(p));
+  rNum.classList.toggle("ok", /[0-9]/.test(p));
+  rSpec.classList.toggle("ok", /[^A-Za-z0-9]/.test(p));
+}
+
+function updateStrength(){
+  const p = passEl.value;
+  updateChecklist(p);
+
+  const s=scorePassword(p);
+  const pct=[0,20,40,60,80,100][s];
+  fill.style.width=pct+"%";
+
+  if(s<=1){
+    fill.style.background="#ef4444";
+    label.innerText="Weak";
+  }else if(s===2){
+    fill.style.background="#f59e0b";
+    label.innerText="Okay";
+  }else if(s===3){
+    fill.style.background="#22c55e";
+    label.innerText="Good";
+  }else{
+    fill.style.background="#22d3ee";
+    label.innerText="Strong";
+  }
+}
+passEl.addEventListener("input", updateStrength);
+updateStrength();
+
+function setLoading(isLoading){
+  if(isLoading){
+    btn.disabled=true;
+    btn.innerHTML=`<span class="spinner"></span>Resetting...`;
+  }else{
+    btn.disabled=false;
+    btn.innerHTML=`Reset password`;
+  }
+}
+
+async function resetPass(){
+  const email=document.getElementById("email").value.trim();
+  const code=document.getElementById("code").value.trim();
+  const new_password=passEl.value;
+
+  err.style.display="none";
+  msgBox.style.display="none";
+
+  if(!email || !code || !new_password){
+    err.style.display="block";
+    err.innerText="Please fill all fields.";
+    shake();
+    return;
+  }
+  if(code.length < 6){
+    err.style.display="block";
+    err.innerText="Reset code must be 6 digits.";
+    shake();
+    return;
+  }
+
+  setLoading(true);
+
+  try{
+    const r = await fetch("/api/reset",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({email,code,new_password})
+    });
+    const d = await r.json();
+
+    if(d.success){
+      msgBox.style.display="block";
+      msgBox.innerHTML = `✅ Password updated successfully! Redirecting to login...`;
+
+      setTimeout(()=>{
+        document.body.classList.add("page-leave");
+        setTimeout(()=>location.href="/login", 420);
+      }, 1100);
+    }else{
+      err.style.display="block";
+      err.innerText = d.message || "Reset failed";
+      shake();
+    }
+  }catch{
+    err.style.display="block";
+    err.innerText="Server error. Try again.";
+    shake();
+  }finally{
+    setLoading(false);
+  }
+}
+
+document.addEventListener("keydown",(e)=>{
+  if(e.key==="Enter") resetPass();
+});
+</script>
+</body>
+</html>

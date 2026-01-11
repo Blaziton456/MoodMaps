@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MoodMap – Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --accent:#a78bfa;
+    --accent2:#22d3ee;
+    --text:rgba(255,255,255,0.92);
+    --muted:rgba(255,255,255,0.62);
+    --stroke:rgba(255,255,255,0.16);
+    --glass:rgba(255,255,255,0.10);
+    --glass2:rgba(255,255,255,0.06);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-family:Inter,system-ui;
+    color:var(--text);
+    background: radial-gradient(circle at 20% 20%, #a78bfa55, transparent 55%),
+                radial-gradient(circle at 80% 80%, #22d3ee55, transparent 58%),
+                linear-gradient(120deg,#020617,#0f172a);
+    overflow:hidden;
+  }
+
+  /* animated blobs */
+  .blob{
+    position:fixed;
+    width:520px;height:520px;border-radius:999px;
+    filter:blur(55px);
+    opacity:.55;
+    z-index:-2;
+    animation: float 10s ease-in-out infinite;
+  }
+  .b1{left:-150px;top:-170px;background:#a78bfa;}
+  .b2{right:-180px;top:120px;background:#22d3ee;animation-delay:-4s}
+  .b3{left:35%;bottom:-240px;width:420px;height:420px;background:#60a5fa;animation-delay:-7s}
+
+  @keyframes float{
+    0%,100%{transform:translate(0,0) scale(1)}
+    50%{transform:translate(25px,-18px) scale(1.06)}
+  }
+
+  /* card */
+  .card{
+    width:min(410px,92vw);
+    padding:30px 28px;
+    border-radius:22px;
+    border:1px solid var(--stroke);
+    background: linear-gradient(180deg,var(--glass),var(--glass2));
+    backdrop-filter: blur(18px);
+    box-shadow: 0 60px 140px rgba(0,0,0,0.65);
+    position:relative;
+    animation: pop .6s cubic-bezier(.2,.9,.2,1) both;
+    transform-origin:center;
+  }
+  @keyframes pop{
+    from{opacity:0;transform:translateY(18px) scale(.97)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+  }
+
+  /* page transition leave */
+  body.page-leave .card{
+    animation: leave .55s cubic-bezier(.2,.9,.2,1) both;
+  }
+  @keyframes leave{
+    to{opacity:0;transform:translateY(22px) scale(.96);filter:blur(6px)}
+  }
+
+  .brand{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    margin-bottom:16px;
+  }
+  .logo{
+    width:44px;height:44px;border-radius:14px;
+    display:grid;place-items:center;
+    font-weight:900;
+    background: linear-gradient(135deg,var(--accent2),var(--accent));
+    box-shadow:0 18px 60px rgba(34,211,238,0.14);
+  }
+
+  h1{font-size:22px;letter-spacing:-.2px}
+  .sub{margin-top:6px;color:var(--muted);font-size:13px}
+
+  .welcome{
+    margin-top:14px;
+    padding:10px 12px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(34,211,238,0.10);
+    font-size:13px;
+    color: rgba(255,255,255,0.86);
+    display:none;
+  }
+
+  .field{margin-top:14px}
+  .field label{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+
+  .inputWrap{
+    position:relative;
+  }
+
+  input{
+    width:100%;
+    padding:12px 46px 12px 14px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.16);
+    background: rgba(0,0,0,0.22);
+    color:white;
+    outline:none;
+    transition:.25s ease;
+  }
+  input:focus{
+    border-color: rgba(34,211,238,0.46);
+    box-shadow:0 0 0 4px rgba(34,211,238,0.12);
+  }
+
+  .eyeBtn{
+    position:absolute;
+    right:10px;
+    top:50%;
+    transform:translateY(-50%);
+    width:34px;height:34px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.18);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    cursor:pointer;
+    transition: transform .15s ease, border .2s ease;
+    user-select:none;
+  }
+  .eyeBtn:hover{transform:translateY(-50%) scale(1.04);border-color:rgba(255,255,255,0.22)}
+  .eyeBtn svg{width:17px;height:17px;opacity:.95}
+
+  .row{
+    margin-top:12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:12px;
+    color:rgba(255,255,255,0.72);
+  }
+  .remember{display:flex;gap:8px;align-items:center}
+  .remember input{accent-color:#22d3ee}
+
+  .btn{
+    width:100%;
+    margin-top:18px;
+    padding:12px 14px;
+    border-radius:14px;
+    border:none;
+    cursor:pointer;
+    font-weight:800;
+    color:white;
+    background: linear-gradient(135deg,var(--accent),var(--accent2));
+    box-shadow: 0 18px 60px rgba(167,139,250,0.18);
+    transition: transform .16s ease, filter .2s ease;
+    position:relative;
+  }
+  .btn:hover{transform:translateY(-2px);filter:brightness(1.06)}
+  .btn:active{transform:translateY(0px) scale(.99)}
+  .btn:disabled{opacity:.7;cursor:not-allowed;transform:none}
+
+  a{color:#22d3ee;text-decoration:none;font-weight:800}
+  a:hover{text-decoration:underline}
+
+  .err{
+    margin-top:12px;
+    color:#fca5a5;
+    font-size:13px;
+    display:none;
+  }
+
+  .links{
+    margin-top:14px;
+    display:flex;
+    justify-content:space-between;
+    font-size:13px;
+    color:rgba(255,255,255,0.7);
+  }
+
+  .tiny{
+    font-size:12px;
+    color:rgba(255,255,255,0.62);
+  }
+
+  .spinner{
+    width:16px;height:16px;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,0.35);
+    border-top-color:white;
+    display:inline-block;
+    animation: spin .8s linear infinite;
+    vertical-align:-3px;
+    margin-right:8px;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+
+<body>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+
+  <div class="card" id="authCard">
+    <div class="brand">
+      <div class="logo">M</div>
+      <div>
+        <h1>MoodMap</h1>
+        <div class="sub">Login to continue</div>
+      </div>
+    </div>
+
+    <div class="welcome" id="welcomeBox"></div>
+
+    <div class="field">
+      <label>Email</label>
+      <div class="inputWrap">
+        <input id="email" placeholder="you@example.com" style="padding-right:14px;" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Password</label>
+      <div class="inputWrap">
+        <input id="password" type="password" placeholder="••••••••" />
+        <div class="eyeBtn" id="toggleLoginPass" title="Show/Hide password">
+          <!-- eye icon -->
+          <svg id="eyeIconLogin" viewBox="0 0 24 24" fill="none">
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="white" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="3" stroke="white" stroke-width="1.8"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <label class="remember">
+        <input type="checkbox" id="remember" />
+        Remember me
+      </label>
+
+      <a class="go-anim" href="/signup" data-go="/signup">Sign up</a>
+    </div>
+
+    <button class="btn" id="loginBtn" onclick="login()">Login</button>
+    <div class="err" id="err"></div>
+
+    <div class="links">
+      <span></span>
+      <a class="go-anim" href="/forgot" data-go="/forgot">Forgot password?</a>
+    </div>
+
+    <div class="tiny" style="margin-top:12px;opacity:.7">
+      Tip: Use <b>Remember me</b> for quick logins ✨
+    </div>
+  </div>
+
+<script>
+/* smooth navigation animation */
+document.querySelectorAll(".go-anim").forEach(a=>{
+  a.addEventListener("click",(e)=>{
+    e.preventDefault();
+    const go=a.getAttribute("data-go") || a.getAttribute("href");
+    document.body.classList.add("page-leave");
+    setTimeout(()=>location.href=go, 520);
+  });
+});
+
+const emailEl=document.getElementById("email");
+const passEl=document.getElementById("password");
+const rememberEl=document.getElementById("remember");
+const welcomeBox=document.getElementById("welcomeBox");
+const loginBtn=document.getElementById("loginBtn");
+
+/* show/hide password */
+document.getElementById("toggleLoginPass").addEventListener("click", ()=>{
+  passEl.type = passEl.type === "password" ? "text" : "password";
+});
+
+(function(){
+  const saved = localStorage.getItem("moodmap_saved_email");
+  const savedName = localStorage.getItem("moodmap_saved_name");
+  if(saved) emailEl.value=saved;
+  if(savedName){
+    welcomeBox.style.display="block";
+    welcomeBox.innerHTML = `Welcome back, <b>${savedName}</b> ✨`;
+  }
+})();
+
+function setLoading(isLoading){
+  if(isLoading){
+    loginBtn.disabled=true;
+    loginBtn.innerHTML=`<span class="spinner"></span>Logging in...`;
+  }else{
+    loginBtn.disabled=false;
+    loginBtn.innerHTML=`Login`;
+  }
+}
+
+function login(){
+  const email=emailEl.value.trim();
+  const password=passEl.value;
+  const remember=rememberEl.checked;
+
+  const err=document.getElementById("err");
+  err.style.display="none";
+
+  if(!email || !password){
+    err.style.display="block";
+    err.innerText="Please fill email and password.";
+    return;
+  }
+
+  setLoading(true);
+
+  fetch("/login",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email,password,remember})
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.success){
+      if(remember){
+        localStorage.setItem("moodmap_saved_email", email);
+        if(d.name) localStorage.setItem("moodmap_saved_name", d.name);
+      }else{
+        localStorage.removeItem("moodmap_saved_email");
+        localStorage.removeItem("moodmap_saved_name");
+      }
+
+      document.body.classList.add("page-leave");
+      setTimeout(()=>location.href="/", 420);
+    }else{
+      err.style.display="block";
+      err.innerText=d.message || "Invalid login";
+    }
+  })
+  .catch(()=>{
+    err.style.display="block";
+    err.innerText="Server error. Try again.";
+  })
+  .finally(()=>setLoading(false));
+}
+
+/* allow Enter key */
+document.addEventListener("keydown",(e)=>{
+  if(e.key==="Enter") login();
+});
+</script>
+</body>
+</html>

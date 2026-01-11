@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MoodMap – Profile</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<!-- ✅ Cropper.js CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
+
+<style>
+  :root{
+    --accent:#a78bfa;
+    --accent2:#22d3ee;
+    --text:#e5e7eb;
+  }
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:Inter,system-ui;
+    color:var(--text);
+    background: radial-gradient(circle at 20% 20%, #a78bfa40, transparent 55%),
+                radial-gradient(circle at 80% 80%, #22d3ee35, transparent 55%),
+                linear-gradient(120deg,#020617,#0f172a);
+    overflow-x:hidden;
+  }
+  .wrap{max-width:1050px;margin:auto;padding:40px 22px 90px;}
+  .topRow{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px;}
+  .brand{font-weight:1000;font-size:22px;}
+  .btn{
+    padding:11px 14px;border-radius:999px;
+    border:1px solid rgba(255,255,255,0.16);
+    background:rgba(0,0,0,0.26);
+    color:white;text-decoration:none;
+    font-weight:1000;
+    cursor:pointer;
+    transition: transform .15s ease;
+  }
+  .btn:hover{transform:translateY(-2px)}
+  .btn.primary{border:none;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  .grid{display:grid;grid-template-columns: 1fr 1fr;gap:18px;margin-top:18px;}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+  .card{
+    border-radius:22px;border:1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 60px 140px rgba(0,0,0,0.65);
+    padding:18px;
+  }
+  .profileRow{display:flex;gap:14px;align-items:center;}
+  .pfp{
+    width:72px;height:72px;border-radius:22px;
+    border:1px solid rgba(255,255,255,0.18);
+    overflow:hidden;background:rgba(0,0,0,0.22);
+    display:grid;place-items:center;
+    font-weight:1000;font-size:22px;
+  }
+  .pfp img{width:100%;height:100%;object-fit:cover}
+  .name{font-weight:1000;font-size:18px}
+  .user{opacity:.7;font-size:13px;margin-top:6px}
+  .metaRow{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap}
+  .badge{
+    padding:7px 12px;border-radius:999px;
+    border:1px solid rgba(255,255,255,0.14);
+    background:rgba(0,0,0,0.22);
+    font-size:12px;font-weight:900;
+  }
+
+  .places{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:12px;}
+  .place{
+    border-radius:18px;border:1px solid rgba(255,255,255,0.14);
+    background:rgba(0,0,0,0.22);
+    padding:12px;cursor:pointer;transition: transform .15s ease;
+  }
+  .place:hover{transform:translateY(-4px)}
+  .pTitle{font-weight:1000;font-size:13px}
+  .pMeta{opacity:.65;font-size:12px;margin-top:7px}
+  .lockBox{
+    margin-top:12px;padding:16px;border-radius:18px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.22);
+    opacity:.9;line-height:1.6;font-size:13px;
+  }
+
+  /* share card */
+  .shareCard{
+    border-radius:22px;border:1px solid rgba(255,255,255,0.18);
+    background: radial-gradient(circle at 15% 20%, rgba(167,139,250,0.24), transparent 55%),
+                radial-gradient(circle at 85% 80%, rgba(34,211,238,0.24), transparent 55%),
+                rgba(0,0,0,0.22);
+    padding:18px;position:relative;overflow:hidden;
+  }
+  .shareTitle{font-weight:1000;font-size:14px}
+  .shareSub{opacity:.7;font-size:12px;margin-top:7px;line-height:1.5}
+  .shareInner{
+    margin-top:14px;border-radius:20px;border:1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    padding:16px;
+  }
+  .qr{margin-top:12px;opacity:.72;font-size:12px;}
+  .hint{opacity:.65;font-size:12px;margin-top:12px}
+
+  /* ✅ Cropper modal */
+  #cropBackdrop{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.55);
+    backdrop-filter: blur(10px);
+    z-index:200;
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .2s ease;
+  }
+  #cropBackdrop.active{
+    opacity:1;
+    pointer-events:auto;
+  }
+
+  #cropModal{
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%) scale(.96);
+    width:min(560px,92vw);
+    border-radius:22px;
+    border:1px solid rgba(255,255,255,0.18);
+    background:linear-gradient(180deg, rgba(20,25,40,0.92), rgba(10,12,20,0.78));
+    backdrop-filter: blur(20px);
+    z-index:201;
+    padding:16px;
+    box-shadow: 0 60px 160px rgba(0,0,0,0.75);
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  #cropModal.active{
+    opacity:1;
+    pointer-events:auto;
+    transform:translate(-50%,-50%) scale(1);
+  }
+
+  .cropTop{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+  }
+  .cropTitle{
+    font-weight:1000;
+    font-size:14px;
+  }
+  .cropClose{
+    width:36px;height:36px;border-radius:14px;
+    border:1px solid rgba(255,255,255,0.14);
+    background:rgba(0,0,0,0.22);
+    color:white;
+    cursor:pointer;
+    font-weight:1000;
+  }
+
+  .cropArea{
+    margin-top:12px;
+    border-radius:18px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.22);
+  }
+  .cropArea img{
+    width:100%;
+    display:block;
+    max-height:420px;
+    object-fit:contain;
+  }
+
+  .cropActions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:12px;
+  }
+
+  .miniBtn{
+    padding:10px 12px;border-radius:14px;
+    border:1px solid rgba(255,255,255,0.16);
+    background:rgba(0,0,0,0.24);
+    color:white;cursor:pointer;font-weight:1000;
+    transition: transform .15s ease;
+  }
+  .miniBtn:hover{transform:translateY(-2px)}
+  .miniBtn.primary{
+    border:none;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+  }
+  .miniBtn.danger{
+    background:rgba(239,68,68,0.22);
+    border-color:rgba(239,68,68,0.30);
+  }
+</style>
+</head>
+
+<body data-owner="{% if is_owner %}1{% else %}0{% endif %}">
+<div class="wrap">
+
+  <!-- ✅ Cropper modal -->
+  <div id="cropBackdrop"></div>
+  <div id="cropModal">
+    <div class="cropTop">
+      <div class="cropTitle">Adjust Profile Picture</div>
+      <button class="cropClose" id="cropCloseBtn">✕</button>
+    </div>
+
+    <div class="cropArea">
+      <img id="cropImage" alt="cropper" />
+    </div>
+
+    <div class="cropActions">
+      <button class="miniBtn" type="button" id="zoomInBtn">＋ Zoom</button>
+      <button class="miniBtn" type="button" id="zoomOutBtn">－ Zoom</button>
+      <button class="miniBtn" type="button" id="rotateBtn">⟲ Rotate</button>
+
+      <button class="miniBtn primary" type="button" id="saveCropBtn" style="margin-left:auto;">✅ Save</button>
+    </div>
+  </div>
+
+  <div class="topRow">
+    <div class="brand">MoodMap</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="/">← Home</a>
+
+      {% if viewer_logged_in and not is_owner %}
+        {% if relationship == "accepted" %}
+          <button class="btn" id="unfollowBtn">Following ✓</button>
+        {% elif relationship == "pending" %}
+          <button class="btn" disabled>Requested ⏳</button>
+        {% else %}
+          <button class="btn primary" id="followBtn">Follow</button>
+        {% endif %}
+      {% endif %}
+
+      <button class="btn primary" id="shareBtn"> Share</button>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="profileRow">
+        <div class="pfp" id="profilePfpBox">
+          {% if profile_pic %}
+            <img id="profilePfpImg" src="{{profile_pic}}" />
+          {% else %}
+            {{profile_name[:1]}}
+          {% endif %}
+        </div>
+
+        <div>
+          <div class="name">{{profile_name}}</div>
+          <div class="user">@{{profile_username}}</div>
+          <div class="metaRow">
+            <span class="badge">Mood: {{current_mood}}</span>
+            <span class="badge">{% if is_private %}Private{% else %}Public{% endif %}</span>
+          </div>
+
+          {% if is_owner %}
+          <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn" onclick="document.getElementById('pfpFile').click()">Change picture</button>
+            <input id="pfpFile" type="file" accept="image/png,image/jpeg,image/webp" style="display:none"/>
+
+            <button class="btn" id="deleteAccountBtn" style="background:rgba(239,68,68,0.22);border-color:rgba(239,68,68,0.35);">
+               Delete my account
+            </button>
+          </div>
+
+          <div id="pfpMsg" style="margin-top:10px;font-size:12px;opacity:.75"></div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if not allowed %}
+        <div class="lockBox">
+           This profile is private.<br>
+          Follow to see saved places + mood activity.
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="shareCard" id="shareCard">
+      <div class="shareTitle">MoodMap Profile Card</div>
+      <div class="shareSub">Share this to Instagram/WhatsApp story and go viral.</div>
+
+      <div class="shareInner">
+        <div style="display:flex;gap:12px;align-items:center;">
+          <div class="pfp" id="sharePfpBox">
+            {% if profile_pic %}
+              <img id="sharePfpImg" src="{{profile_pic}}" />
+            {% else %}
+              {{profile_name[:1]}}
+            {% endif %}
+          </div>
+          <div>
+            <div style="font-weight:1000;font-size:16px">{{profile_name}}</div>
+            <div style="opacity:.7;font-size:12px;margin-top:5px">@{{profile_username}}</div>
+            <div style="margin-top:10px;font-size:12px;opacity:.85">
+              Current Mood: <b>{{current_mood}}</b>
+            </div>
+          </div>
+        </div>
+
+        <div class="qr">🔗 moodmap profile: /u/{{profile_username}}</div>
+      </div>
+
+      <div class="hint">Tip: Share button exports this as PNG.</div>
+    </div>
+
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+      <div style="font-weight:1000;font-size:14px">Saved Places</div>
+      <div style="opacity:.65;font-size:12px">Click a place → open in Maps</div>
+    </div>
+
+    {% if allowed %}
+      <div class="places">
+        {% for p in places %}
+          <div class="place" onclick="openMaps('{{p.lat}}','{{p.lon}}')">
+            <div class="pTitle">{{p.name}}</div>
+            <div class="pMeta">{{p.category}}</div>
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if places|length == 0 %}
+        <div style="opacity:.65;font-size:13px;padding:18px 0">No saved places yet.</div>
+      {% endif %}
+    {% else %}
+      <div style="opacity:.65;font-size:13px;padding:18px 0">
+        Saved places are hidden for private profiles.
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+
+<script>
+const PROFILE_USERNAME = "{{profile_username}}";
+const IS_OWNER = document.body.dataset.owner === "1";
+
+function openMaps(lat, lon){
+  window.open(`https://www.google.com/maps?q=${lat},${lon}`, "_blank");
+}
+
+function setAllPfps(newUrl){
+  const busted = newUrl + (newUrl.includes("?") ? "&" : "?") + "v=" + Date.now();
+
+  const p1 = document.getElementById("profilePfpImg");
+  const p2 = document.getElementById("sharePfpImg");
+
+  if(p1) p1.src = busted;
+  if(p2) p2.src = busted;
+
+  // ✅ also update any navbar icons if present
+  document.querySelectorAll('img[data-pfp="1"]').forEach(img=>{
+    img.src = busted;
+  });
+
+  // ✅ notify other pages / scripts (index navbar etc)
+  try{
+    window.dispatchEvent(new CustomEvent("moodmap:pfp-updated", { detail: { url: newUrl } }));
+  }catch(e){}
+}
+
+/* follow/unfollow */
+const followBtn = document.getElementById("followBtn");
+const unfollowBtn = document.getElementById("unfollowBtn");
+
+if(followBtn){
+  followBtn.onclick = async ()=>{
+    followBtn.disabled = true;
+    const r = await fetch("/api/follow/request",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({username:PROFILE_USERNAME})
+    });
+    const d = await r.json();
+    if(d.success) location.reload();
+    else followBtn.disabled=false;
+  };
+}
+
+if(unfollowBtn){
+  unfollowBtn.onclick = async ()=>{
+    unfollowBtn.disabled = true;
+    await fetch("/api/follow/unfollow",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({username:PROFILE_USERNAME})
+    });
+    location.reload();
+  };
+}
+
+/* share */
+const shareBtn = document.getElementById("shareBtn");
+shareBtn.onclick = async ()=>{
+  shareBtn.disabled=true;
+  shareBtn.innerText="Generating…";
+  try{
+    const el = document.getElementById("shareCard");
+    const canvas = await html2canvas(el,{scale:2, backgroundColor:null});
+    const link = document.createElement("a");
+    link.download = `moodmap_${PROFILE_USERNAME}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }catch(e){
+    alert("Share failed.");
+  }finally{
+    shareBtn.disabled=false;
+    shareBtn.innerText=" Share";
+  }
+};
+
+/* ✅ cropper */
+let cropper=null;
+
+const cropBackdrop=document.getElementById("cropBackdrop");
+const cropModal=document.getElementById("cropModal");
+const cropImage=document.getElementById("cropImage");
+const cropCloseBtn=document.getElementById("cropCloseBtn");
+const zoomInBtn=document.getElementById("zoomInBtn");
+const zoomOutBtn=document.getElementById("zoomOutBtn");
+const rotateBtn=document.getElementById("rotateBtn");
+const saveCropBtn=document.getElementById("saveCropBtn");
+
+function openCropper(file){
+  const url = URL.createObjectURL(file);
+
+  cropImage.src=url;
+  cropBackdrop.classList.add("active");
+  cropModal.classList.add("active");
+
+  if(cropper){
+    cropper.destroy();
+    cropper=null;
+  }
+
+  cropper = new Cropper(cropImage,{
+    aspectRatio:1,
+    viewMode:1,
+    dragMode:"move",
+    autoCropArea:1,
+    background:false,
+    guides:false,
+    center:true
+  });
+}
+
+function closeCropper(){
+  cropBackdrop.classList.remove("active");
+  cropModal.classList.remove("active");
+}
+
+cropBackdrop.addEventListener("click", closeCropper);
+cropCloseBtn.onclick = closeCropper;
+
+zoomInBtn.onclick = ()=>{ if(cropper) cropper.zoom(0.1); };
+zoomOutBtn.onclick = ()=>{ if(cropper) cropper.zoom(-0.1); };
+rotateBtn.onclick = ()=>{ if(cropper) cropper.rotate(90); };
+
+if(IS_OWNER){
+  const file=document.getElementById("pfpFile");
+  const msg=document.getElementById("pfpMsg");
+
+  file.addEventListener("change", async ()=>{
+    const f=file.files?.[0];
+    if(!f) return;
+    msg.innerText="";
+    openCropper(f);
+  });
+
+  saveCropBtn.addEventListener("click", ()=>{
+    if(!cropper) return;
+
+    msg.innerText="Preparing crop…";
+
+    const canvas = cropper.getCroppedCanvas({
+      width:512,
+      height:512,
+      imageSmoothingQuality:"high"
+    });
+
+    canvas.toBlob(async (blob)=>{
+      if(!blob){
+        msg.innerText="❌ Failed to crop image";
+        return;
+      }
+
+      msg.innerText="Uploading…";
+      closeCropper();
+
+      const fd=new FormData();
+      fd.append("pfp", blob, "pfp.jpg");
+
+      try{
+        const r=await fetch("/api/profile/upload_pfp",{method:"POST",body:fd});
+        const d=await r.json();
+        if(d.success){
+          msg.innerText="✅ Updated!";
+          setAllPfps(d.url);
+        }else{
+          msg.innerText="❌ " + (d.message||"Upload failed");
+        }
+      }catch{
+        msg.innerText="❌ Upload failed";
+      }
+    }, "image/jpeg", 0.95);
+  });
+}
+
+/* ✅ DELETE ACCOUNT */
+if(IS_OWNER){
+  const deleteBtn = document.getElementById("deleteAccountBtn");
+  if(deleteBtn){
+    deleteBtn.onclick = async ()=>{
+      const ok = confirm("This will permanently delete your MoodMap account.\n\nThis cannot be undone.\n\nContinue?");
+      if(!ok) return;
+
+      const password = prompt("Enter your password to confirm deletion:");
+      if(!password) return;
+
+      deleteBtn.disabled = true;
+      deleteBtn.innerText = "Deleting…";
+
+      try{
+        const r = await fetch("/api/account/delete",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({password})
+        });
+
+        const d = await r.json();
+
+        if(d.success){
+          alert("✅ Account deleted successfully.");
+          location.href="/login";
+        }else{
+          alert("❌ " + (d.message || "Delete failed"));
+          deleteBtn.disabled = false;
+          deleteBtn.innerText = " Delete my account";
+        }
+      }catch{
+        alert("❌ Server error");
+        deleteBtn.disabled = false;
+        deleteBtn.innerText = " Delete my account";
+      }
+    };
+  }
+}
+</script>
+
+</body>
+</html>

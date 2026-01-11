@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MoodMap</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --accent:#a78bfa;
+  --accent2:#22d3ee;
+  --accent-soft:rgba(167,139,250,0.30);
+  --text:#e5e7eb;
+
+  --bg1:#0ea5e9;
+  --bg2:#0f172a;
+  --bg3:#a78bfa;
+
+  --particle:200,230,255;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+
+body{
+  margin:0;
+  font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  color:var(--text);
+  background:#05070f;
+  overflow-x:hidden;
+}
+
+.moodGradient{
+  position:fixed;
+  inset:0;
+  z-index:-10;
+  background:
+    radial-gradient(circle at 12% 18%, var(--bg1), transparent 55%),
+    radial-gradient(circle at 80% 70%, var(--bg2), transparent 62%),
+    radial-gradient(circle at 55% 95%, var(--bg3), transparent 58%),
+    #05070f;
+  transition: background 1200ms cubic-bezier(.2,1,.2,1);
+}
+
+#particles{
+  position:fixed;
+  inset:0;
+  z-index:-8;
+  pointer-events:none;
+  opacity:0.55;
+  transition: opacity .4s ease;
+}
+
+.noise{
+  position:fixed;
+  inset:0;
+  z-index:-7;
+  pointer-events:none;
+  opacity:0.05;
+  background-image:url("https://grainy-gradients.vercel.app/noise.svg");
+  mix-blend-mode: overlay;
+}
+
+.app{
+  max-width:1160px;
+  margin:auto;
+  padding:46px 28px 110px;
+}
+
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+  margin-bottom:18px;
+  flex-wrap:wrap;
+}
+
+.title{
+  font-size:30px;
+  font-weight:900;
+  letter-spacing:-0.4px;
+}
+.subtitle{
+  color:rgba(255,255,255,0.60);
+  font-size:13px;
+  margin-top:6px;
+}
+
+/* ✅ Right top actions */
+.userbox{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+.welcomeChip{
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:rgba(0,0,0,0.22);
+  font-size:13px;
+  color:rgba(255,255,255,0.86);
+}
+
+/* ✅ Search users */
+.searchWrap{
+  position:relative;
+}
+
+.userSearch{
+  width:260px;
+  background:rgba(0,0,0,0.30);
+  border:1px solid rgba(255,255,255,0.14);
+  color:var(--text);
+  padding:10px 12px 10px 36px;
+  border-radius:999px;
+  font-size:13px;
+  outline:none;
+  transition: border .2s ease, box-shadow .2s ease;
+}
+.userSearch:focus{
+  border-color: rgba(255,255,255,0.26);
+  box-shadow: 0 25px 80px rgba(167,139,250,0.10);
+}
+
+.searchIcon{
+  position:absolute;
+  left:12px;
+  top:50%;
+  transform:translateY(-50%);
+  opacity:.7;
+  font-size:14px;
+  pointer-events:none;
+}
+
+.searchDrop{
+  position:absolute;
+  right:0;
+  top:46px;
+  width:360px;
+  max-width:86vw;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,0.16);
+  background: linear-gradient(180deg, rgba(20,25,40,0.94), rgba(10,12,20,0.82));
+  backdrop-filter: blur(18px);
+  box-shadow: 0 50px 150px rgba(0,0,0,0.75);
+  overflow:hidden;
+  display:none;
+  z-index:200;
+}
+
+.dropHead{
+  padding:12px 14px;
+  border-bottom:1px solid rgba(255,255,255,0.10);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
+.dropTitle{
+  font-weight:1000;
+  font-size:13px;
+}
+.dropHint{
+  font-size:12px;
+  opacity:.65;
+}
+
+.dropList{
+  max-height:340px;
+  overflow:auto;
+}
+.dropItem{
+  padding:12px 14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:14px;
+  cursor:pointer;
+  transition: background .15s ease;
+}
+.dropItem:hover{
+  background: rgba(255,255,255,0.06);
+}
+.dropLeft{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  min-width:0;
+}
+.avatar{
+  width:36px;height:36px;border-radius:14px;
+  display:grid;place-items:center;
+  font-weight:1000;
+  background: linear-gradient(135deg,var(--accent),var(--accent2));
+}
+.dropName{
+  font-weight:1000;
+  font-size:13px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.dropUser{
+  font-size:12px;
+  opacity:.66;
+  margin-top:4px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.lockBadge{
+  font-size:11px;
+  padding:7px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.22);
+  font-weight:900;
+  opacity:.9;
+}
+.emptyDrop{
+  padding:16px;
+  font-size:13px;
+  opacity:.65;
+}
+
+.topBtn{
+  color:white;
+  text-decoration:none;
+  font-weight:1000;
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:rgba(0,0,0,0.25);
+  transition: transform .16s ease, box-shadow .16s ease;
+  cursor:pointer;
+}
+.topBtn:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 18px 60px rgba(167,139,250,0.12);
+}
+.logoutBtn{
+  color:white;
+  text-decoration:none;
+  font-weight:1000;
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:rgba(0,0,0,0.25);
+  transition: transform .16s ease;
+}
+.logoutBtn:hover{transform: translateY(-2px)}
+
+.panel{
+  margin-top:18px;
+  border-radius:22px;
+  padding:18px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:linear-gradient(180deg,rgba(255,255,255,0.11),rgba(255,255,255,0.03));
+  backdrop-filter: blur(16px);
+}
+
+.controls{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+select, input[type="text"]{
+  background:rgba(0,0,0,0.30);
+  border:1px solid rgba(255,255,255,0.14);
+  color:var(--text);
+  padding:12px 14px;
+  border-radius:14px;
+  font-size:14px;
+  outline:none;
+}
+
+input[type="text"]{width:320px}
+
+button{
+  margin-left:auto;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border:none;
+  color:white;
+  padding:12px 18px;
+  border-radius:14px;
+  font-weight:1000;
+  cursor:pointer;
+  transition: transform .16s ease, box-shadow .16s ease, background .7s ease;
+}
+button:hover{
+  transform:translateY(-2px);
+  box-shadow: 0 18px 60px var(--accent-soft);
+}
+button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
+
+/* Saved Sections */
+.savedSection{ margin-top:22px; }
+.savedSectionTitle{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:13px;
+  color:rgba(255,255,255,0.65);
+  margin-bottom:10px;
+}
+
+.carousel{
+  display:flex;
+  gap:12px;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  padding-bottom:6px;
+}
+.carousel::-webkit-scrollbar{height:8px}
+.carousel::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:999px}
+
+.pinCard{
+  min-width:240px;
+  scroll-snap-align:start;
+  border-radius:18px;
+  padding:14px;
+  border:1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(16px);
+  cursor:pointer;
+}
+.pinCardTitle{font-weight:1000;font-size:13px}
+.pinCardMeta{margin-top:8px;font-size:12px;color:rgba(255,255,255,0.65)}
+
+/* results */
+.results{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  gap:18px;
+  margin-top:22px;
+}
+
+/* Glass + Glow cards */
+.card{
+  position:relative;
+  overflow:hidden;
+  border-radius:22px;
+  padding:18px 18px 16px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    0 18px 70px rgba(0,0,0,0.30),
+    0 1px 0 rgba(255,255,255,0.05) inset;
+  cursor:pointer;
+  min-height:190px;
+  transition: transform .22s ease, box-shadow .22s ease, border .22s ease;
+}
+
+.card::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  opacity:0;
+  transition:opacity .25s ease;
+  pointer-events:none;
+  background:
+    radial-gradient(600px circle at var(--mx,50%) var(--my,50%),
+    rgba(255,255,255,0.18),
+    rgba(167,139,250,0.12),
+    transparent 60%);
+}
+.card:hover::before{opacity:1}
+.card:hover{
+  transform: translateY(-7px);
+  border-color: rgba(255,255,255,0.26);
+  box-shadow:
+    0 30px 95px rgba(0,0,0,0.35),
+    0 0 50px rgba(167,139,250,0.12),
+    0 1px 0 rgba(255,255,255,0.07) inset;
+}
+
+.cardTitle{margin:0;font-size:15px;font-weight:1000;padding-right:92px;line-height:1.35}
+
+.badgeRow{
+  margin-top:10px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  color:rgba(255,255,255,0.72);
+  font-size:12px;
+}
+
+.kmBadge{
+  display:inline-flex;
+  gap:8px;
+  align-items:center;
+  padding:7px 11px;
+  border-radius:999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.22);
+}
+.kmDot{
+  width:9px;height:9px;border-radius:50%;
+  background: var(--accent);
+  box-shadow: 0 0 22px var(--accent-soft);
+}
+
+.badge{
+  background: rgba(0,0,0,0.18);
+  border: 1px solid rgba(255,255,255,0.12);
+  padding:7px 12px;
+  border-radius:999px;
+  font-size:12px;
+}
+
+.statusBadge{
+  border-radius:999px;
+  padding:7px 12px;
+  font-size:12px;
+  font-weight:900;
+  border:1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+.statusDot{width:9px;height:9px;border-radius:50%}
+.openDot{background:#22c55e;box-shadow:0 0 14px rgba(34,197,94,0.55)}
+.closedDot{background:#ef4444;box-shadow:0 0 14px rgba(239,68,68,0.55)}
+
+/* AI explain text inside card */
+.aiLine{
+  margin-top:10px;
+  font-size:12.5px;
+  color:rgba(255,255,255,0.72);
+  line-height:1.45;
+}
+.aiTag{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border-radius:999px;
+  padding:7px 12px;
+  border:1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+  font-size:12px;
+  font-weight:1000;
+  color:rgba(255,255,255,0.9);
+  margin-top:12px;
+}
+.aiDot{
+  width:9px;height:9px;border-radius:50%;
+  background: linear-gradient(135deg,var(--accent),var(--accent2));
+  box-shadow:0 0 18px rgba(167,139,250,0.28);
+}
+
+/* reach time row */
+.reachRow{
+  margin-top:10px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  font-size:12px;
+  color:rgba(255,255,255,0.65);
+}
+
+.actions{position:absolute;right:14px;top:14px;display:flex;gap:10px;}
+.iconBtn{
+  width:36px;height:36px;border-radius:14px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:rgba(0,0,0,0.22);
+  color:white;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  font-weight:1000;
+}
+.iconBtn.pinned{border-color: var(--accent)}
+
+/* skeleton */
+.skeleton{
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.05);
+  height:190px;
+  position:relative;
+  overflow:hidden;
+}
+.skeleton::after{
+  content:"";
+  position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.09),transparent);
+  transform:translateX(-100%);
+  animation:shimmer 1.4s infinite;
+}
+@keyframes shimmer{to{transform:translateX(100%)}}
+
+/* ===== Modal (map left + details right) ===== */
+#modalBackdrop{
+  position:fixed; inset:0; z-index:80;
+  background:rgba(0,0,0,0.55);
+  backdrop-filter: blur(8px);
+  opacity:0; pointer-events:none;
+  transition: opacity .22s ease;
+}
+#modalBackdrop.active{opacity:1;pointer-events:auto}
+
+#modal{
+  position:fixed;
+  left:50%;
+  top:58%;
+  transform: translate(-50%,-50%) scale(0.96);
+  width:min(980px, 92vw);
+  max-height:82vh;
+  overflow:hidden;
+  border-radius:22px;
+  z-index:81;
+  border:1px solid rgba(255,255,255,0.18);
+  background: linear-gradient(180deg, rgba(20,25,40,0.92), rgba(10,12,20,0.78));
+  backdrop-filter: blur(20px);
+  box-shadow: 0 60px 160px rgba(0,0,0,0.75);
+  opacity:0;
+  pointer-events:none;
+  transition: opacity .22s ease, transform .22s ease;
+}
+#modal.active{
+  opacity:1;
+  pointer-events:auto;
+  transform: translate(-50%,-50%) scale(1);
+}
+
+.modalInner{padding:18px}
+.modalTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.modalTitle{font-weight:1000;font-size:18px;margin:0}
+.modalMeta{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;color:rgba(255,255,255,0.72);font-size:12px}
+
+.modalBody{
+  display:grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap:16px;
+  margin-top:14px;
+}
+
+.modalMap{
+  width:100%;
+  height:380px;
+  border-radius:18px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,0.14)
+}
+.modalMap iframe{width:100%;height:100%;border:0}
+
+.detailsBox{
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  padding:14px;
+  min-height: 220px;
+}
+
+.detailsTitle{
+  font-weight:900;
+  font-size:14px;
+  margin:0 0 12px 0;
+  color:rgba(255,255,255,0.9);
+}
+
+.detailsText{
+  font-size:13px;
+  line-height:1.55;
+  color:rgba(255,255,255,0.72);
+}
+
+.modalActions{
+  margin-top:14px;
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.linkBtn{
+  display:inline-flex;
+  gap:10px;
+  align-items:center;
+  padding:10px 14px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.30);
+  color:white;
+  text-decoration:none;
+  font-weight:1000;
+  font-size:13px;
+}
+
+/* ✅ Follow requests modal */
+#reqBackdrop{
+  position:fixed; inset:0; z-index:120;
+  background:rgba(0,0,0,0.55);
+  backdrop-filter: blur(8px);
+  opacity:0; pointer-events:none;
+  transition: opacity .2s ease;
+}
+#reqBackdrop.active{opacity:1;pointer-events:auto}
+
+#reqModal{
+  position:fixed; left:50%; top:55%; z-index:121;
+  transform:translate(-50%,-50%) scale(.96);
+  width:min(560px,92vw);
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,0.18);
+  background: linear-gradient(180deg, rgba(20,25,40,0.92), rgba(10,12,20,0.78));
+  backdrop-filter: blur(20px);
+  box-shadow: 0 60px 160px rgba(0,0,0,0.75);
+  opacity:0; pointer-events:none;
+  transition: opacity .2s ease, transform .2s ease;
+}
+#reqModal.active{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.reqInner{padding:18px}
+.reqTitle{font-size:16px;font-weight:1000;margin:0}
+.reqSub{margin-top:8px;font-size:13px;color:rgba(255,255,255,0.70)}
+.reqList{margin-top:14px;display:flex;flex-direction:column;gap:12px;max-height:50vh;overflow:auto;padding-right:4px}
+.reqItem{
+  padding:14px;border-radius:18px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:rgba(255,255,255,0.06);
+  display:flex;justify-content:space-between;gap:12px;align-items:center;
+}
+.reqUser{font-weight:1000}
+.reqMeta{font-size:12px;color:rgba(255,255,255,0.62);margin-top:6px}
+.reqBtns{display:flex;gap:10px}
+.smallBtn{
+  padding:10px 12px;border-radius:14px;
+  border:1px solid rgba(255,255,255,0.16);
+  background:rgba(0,0,0,0.24);
+  color:white;cursor:pointer;font-weight:1000;
+}
+.smallBtn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none}
+.smallBtn.danger{background:rgba(239,68,68,0.22);border-color:rgba(239,68,68,0.30)}
+.smallBtn:hover{transform:translateY(-2px)}
+.reqClose{margin-left:auto}
+
+@media (max-width: 900px){
+  .modalBody{grid-template-columns:1fr}
+  .modalMap{height:300px}
+}
+
+@media (max-width: 800px){
+  button{margin-left:0}
+  input[type="text"]{width:100%}
+  .controls{width:100%}
+  .userSearch{width:86vw; max-width:320px;}
+}
+</style>
+</head>
+
+<body>
+  <div id="moodGradient" class="moodGradient"></div>
+  <canvas id="particles"></canvas>
+  <div class="noise"></div>
+
+  <div class="app">
+    <header>
+      <div>
+        <div class="title">MoodMap</div>
+        <div class="subtitle">Context-aware place discovery</div>
+      </div>
+
+      <div class="userbox">
+        <div class="welcomeChip">Welcome, <b>{{username}}</b></div>
+
+        <!-- ✅ Search users (TOP HEADER) -->
+        <div class="searchWrap" id="searchWrap">
+          <span class="searchIcon">🔍</span>
+          <input id="userSearch" class="userSearch" placeholder="Search users…" autocomplete="off"/>
+          <div class="searchDrop" id="userDrop">
+            <div class="dropHead">
+              <div class="dropTitle">Search Results</div>
+              <div class="dropHint">Click to open profile</div>
+            </div>
+            <div class="dropList" id="dropList"></div>
+          </div>
+        </div>
+
+        <button class="topBtn" id="myProfileBtn" title="My profile">
+           My Profile
+        </button>
+
+        <button class="topBtn" id="copyProfileBtn" title="Copy profile link">
+           Copy Link
+        </button>
+
+        <button class="topBtn" id="reqBtn" title="Follow requests" style="display:none">
+           Requests <span id="reqCount" style="opacity:.9;"></span>
+        </button>
+
+        <a class="logoutBtn" href="/logout">Logout</a>
+      </div>
+    </header>
+
+    <div class="panel">
+      <div class="controls">
+        <select id="mood">
+          <option value="work">Work</option>
+          <option value="date">Date</option>
+          <option value="quick_bite">Quick Bite</option>
+          <option value="budget">Budget</option>
+        </select>
+
+        <input type="text" id="searchInput" placeholder="Search places / category..." />
+
+        <!-- ✅ location ready fix -->
+        <button id="findBtn" disabled>Getting location…</button>
+      </div>
+    </div>
+
+    <!-- ✅ Saved grouped -->
+    <div id="savedWrap"></div>
+
+    <div id="results" class="results"></div>
+  </div>
+
+  <!-- places modal -->
+  <div id="modalBackdrop"></div>
+  <div id="modal">
+    <div id="modalInner" class="modalInner"></div>
+  </div>
+
+  <!-- follow requests modal -->
+  <div id="reqBackdrop"></div>
+  <div id="reqModal">
+    <div class="reqInner">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div>
+          <h3 class="reqTitle">Follow Requests</h3>
+          <div class="reqSub">Approve or reject pending requests</div>
+        </div>
+        <button class="smallBtn reqClose" id="reqCloseBtn">✕</button>
+      </div>
+      <div class="reqList" id="reqList"></div>
+    </div>
+  </div>
+
+  <script>
+    window.MOODMAP_USERNAME = "{{user_username}}";
+  </script>
+  <script src="https://unpkg.com/opening_hours@3.6.0/opening_hours.min.js"></script>
+  <script src="/static/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MoodMap – Forgot Password</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --accent:#a78bfa;
+    --accent2:#22d3ee;
+    --text:rgba(255,255,255,0.92);
+    --muted:rgba(255,255,255,0.62);
+    --stroke:rgba(255,255,255,0.16);
+    --glass:rgba(255,255,255,0.10);
+    --glass2:rgba(255,255,255,0.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    height:100vh;display:flex;justify-content:center;align-items:center;
+    font-family:Inter,system-ui;color:var(--text);
+    background: radial-gradient(circle at 20% 20%, #a78bfa55, transparent 55%),
+                radial-gradient(circle at 80% 80%, #22d3ee55, transparent 58%),
+                linear-gradient(120deg,#020617,#0f172a);
+    overflow:hidden;
+  }
+  .blob{position:fixed;width:520px;height:520px;border-radius:999px;filter:blur(55px);opacity:.55;z-index:-2;animation: float 10s ease-in-out infinite;}
+  .b1{left:-150px;top:-170px;background:#a78bfa;}
+  .b2{right:-180px;top:120px;background:#22d3ee;animation-delay:-4s}
+  .b3{left:35%;bottom:-240px;width:420px;height:420px;background:#60a5fa;animation-delay:-7s}
+  @keyframes float{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(25px,-18px) scale(1.06)}}
+
+  .card{
+    width:min(440px,92vw);
+    padding:30px 28px;border-radius:22px;
+    border:1px solid var(--stroke);
+    background: linear-gradient(180deg,var(--glass),var(--glass2));
+    backdrop-filter: blur(18px);
+    box-shadow: 0 60px 140px rgba(0,0,0,0.65);
+    animation: pop .6s cubic-bezier(.2,.9,.2,1) both;
+    transform-origin:center;
+  }
+  @keyframes pop{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+  body.page-leave .card{animation: leave .55s cubic-bezier(.2,.9,.2,1) both;}
+  @keyframes leave{to{opacity:0;transform:translateY(22px) scale(.96);filter:blur(6px)}}
+
+  .shake{animation: shake .35s ease;}
+  @keyframes shake{
+    0%{transform:translateX(0)}
+    25%{transform:translateX(-10px)}
+    50%{transform:translateX(10px)}
+    75%{transform:translateX(-6px)}
+    100%{transform:translateX(0)}
+  }
+
+  h1{font-size:22px;letter-spacing:-.2px}
+  .sub{margin-top:8px;color:var(--muted);font-size:13px;line-height:1.45}
+
+  .field{margin-top:16px}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+  input{
+    width:100%;
+    padding:12px 14px;border-radius:14px;
+    border:1px solid rgba(255,255,255,0.16);
+    background: rgba(0,0,0,0.22);
+    color:white;outline:none;transition:.25s ease;
+  }
+  input:focus{border-color: rgba(34,211,238,0.46);box-shadow:0 0 0 4px rgba(34,211,238,0.12);}
+
+  .btn{
+    width:100%;margin-top:18px;padding:12px 14px;
+    border-radius:14px;border:none;cursor:pointer;
+    font-weight:800;color:white;
+    background: linear-gradient(135deg,var(--accent),var(--accent2));
+    box-shadow: 0 18px 60px rgba(167,139,250,0.18);
+    transition: transform .16s ease, filter .2s ease;
+  }
+  .btn:hover{transform:translateY(-2px);filter:brightness(1.06)}
+  .btn:disabled{opacity:.7;cursor:not-allowed;transform:none}
+
+  .msg{
+    margin-top:14px;padding:12px 14px;border-radius:16px;
+    border:1px solid rgba(255,255,255,0.16);
+    background: rgba(34,211,238,0.12);
+    font-size:13px;color: rgba(255,255,255,0.92);
+    display:none;line-height:1.45;
+    animation: pop2 .45s ease both;
+  }
+  @keyframes pop2{from{transform:translateY(6px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .err{margin-top:12px;color:#fca5a5;font-size:13px;display:none}
+
+  .footer{
+    margin-top:14px;display:flex;justify-content:space-between;
+    align-items:center;font-size:13px;color:rgba(255,255,255,0.7);
+  }
+  a{color:#22d3ee;text-decoration:none;font-weight:800}
+  a:hover{text-decoration:underline}
+
+  .spinner{
+    width:16px;height:16px;border-radius:50%;
+    border:2px solid rgba(255,255,255,0.35);
+    border-top-color:white;display:inline-block;
+    animation: spin .8s linear infinite;vertical-align:-3px;margin-right:8px;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+
+<body>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+
+  <div class="card" id="card">
+    <h1>Forgot password</h1>
+    <div class="sub">
+      Enter your email. We’ll send a 6-digit reset code to your inbox.
+    </div>
+
+    <div class="field">
+      <label>Email</label>
+      <input id="email" placeholder="you@example.com" />
+    </div>
+
+    <button class="btn" id="sendBtn" onclick="sendCode()">Send reset code</button>
+
+    <div class="msg" id="msgBox"></div>
+    <div class="err" id="err"></div>
+
+    <div class="footer">
+      <a class="go-anim" href="/login" data-go="/login">← Back to login</a>
+      <a class="go-anim" href="/reset" data-go="/reset">Go to reset →</a>
+    </div>
+  </div>
+
+<script>
+/* smooth navigation animation */
+document.querySelectorAll(".go-anim").forEach(a=>{
+  a.addEventListener("click",(e)=>{
+    e.preventDefault();
+    const go=a.getAttribute("data-go") || a.getAttribute("href");
+    document.body.classList.add("page-leave");
+    setTimeout(()=>location.href=go, 520);
+  });
+});
+
+const card=document.getElementById("card");
+const btn=document.getElementById("sendBtn");
+const err=document.getElementById("err");
+const msgBox=document.getElementById("msgBox");
+
+let cooldown = 0;
+let timer = null;
+
+function shake(){
+  card.classList.remove("shake");
+  void card.offsetWidth;
+  card.classList.add("shake");
+}
+
+function setLoading(isLoading){
+  if(isLoading){
+    btn.disabled=true;
+    btn.innerHTML=`<span class="spinner"></span>Sending...`;
+  }else{
+    btn.disabled = cooldown > 0;
+    btn.innerHTML = cooldown > 0 ? `Resend in ${cooldown}s` : `Send reset code`;
+  }
+}
+
+function startCooldown(){
+  cooldown = 30;
+  clearInterval(timer);
+
+  setLoading(false);
+
+  timer = setInterval(()=>{
+    cooldown--;
+    setLoading(false);
+    if(cooldown<=0){
+      clearInterval(timer);
+      cooldown = 0;
+      setLoading(false);
+    }
+  }, 1000);
+}
+
+async function sendCode(){
+  const email=document.getElementById("email").value.trim();
+  err.style.display="none";
+  msgBox.style.display="none";
+
+  if(!email){
+    err.style.display="block";
+    err.innerText="Please enter your email.";
+    shake();
+    return;
+  }
+
+  // ✅ store email for auto-fill on reset page
+  localStorage.setItem("moodmap_reset_email", email);
+
+  setLoading(true);
+
+  try{
+    const res = await fetch("/api/forgot",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({email})
+    });
+    const d = await res.json();
+
+    msgBox.style.display="block";
+    msgBox.innerHTML = d.sent
+      ? `✅ Reset code sent to your email.`
+      : `✅ Code generated, but email service failed. (Check terminal for code)`; // fallback
+
+    startCooldown();
+  }catch{
+    err.style.display="block";
+    err.innerText="Server error. Try again.";
+    shake();
+    setLoading(false);
+  }
+}
+
+/* allow Enter key */
+document.addEventListener("keydown",(e)=>{
+  if(e.key==="Enter") sendCode();
+});
+</script>
+</body>
+</html>

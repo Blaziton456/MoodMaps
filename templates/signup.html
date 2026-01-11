@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MoodMap – Signup</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<!-- ✅ Cropper.js CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
+
+<style>
+  :root{
+    --accent:#a78bfa;
+    --accent2:#22d3ee;
+    --text:rgba(255,255,255,0.92);
+    --muted:rgba(255,255,255,0.62);
+    --stroke:rgba(255,255,255,0.16);
+    --glass:rgba(255,255,255,0.10);
+    --glass2:rgba(255,255,255,0.06);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-family:Inter,system-ui;
+    color:var(--text);
+    background: radial-gradient(circle at 20% 20%, #a78bfa55, transparent 55%),
+                radial-gradient(circle at 80% 80%, #22d3ee55, transparent 58%),
+                linear-gradient(120deg,#020617,#0f172a);
+    overflow:hidden;
+  }
+
+  .blob{
+    position:fixed;
+    width:520px;height:520px;border-radius:999px;
+    filter:blur(55px);
+    opacity:.55;
+    z-index:-2;
+    animation: float 10s ease-in-out infinite;
+  }
+  .b1{left:-150px;top:-170px;background:#a78bfa;}
+  .b2{right:-180px;top:120px;background:#22d3ee;animation-delay:-4s}
+  .b3{left:35%;bottom:-240px;width:420px;height:420px;background:#60a5fa;animation-delay:-7s}
+
+  @keyframes float{
+    0%,100%{transform:translate(0,0) scale(1)}
+    50%{transform:translate(25px,-18px) scale(1.06)}
+  }
+
+  .card{
+    width:min(460px,92vw);
+    padding:30px 28px;
+    border-radius:22px;
+    border:1px solid var(--stroke);
+    background: linear-gradient(180deg,var(--glass),var(--glass2));
+    backdrop-filter: blur(18px);
+    box-shadow: 0 60px 140px rgba(0,0,0,0.65);
+    position:relative;
+    animation: pop .6s cubic-bezier(.2,.9,.2,1) both;
+    transform-origin:center;
+  }
+
+  @keyframes pop{
+    from{opacity:0;transform:translateY(18px) scale(.97)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+  }
+
+  .brand{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    margin-bottom:16px;
+  }
+  .logo{
+    width:44px;height:44px;border-radius:14px;
+    display:grid;place-items:center;
+    font-weight:900;
+    background: linear-gradient(135deg,var(--accent2),var(--accent));
+    box-shadow:0 18px 60px rgba(34,211,238,0.14);
+  }
+
+  h1{font-size:22px;letter-spacing:-.2px}
+  .sub{margin-top:6px;color:var(--muted);font-size:13px}
+
+  .pfpRow{
+    display:flex;gap:14px;align-items:center;
+    margin-top:14px;padding:12px;border-radius:18px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.22);
+  }
+  .pfp{
+    width:54px;height:54px;border-radius:18px;
+    background: rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.14);
+    overflow:hidden;display:grid;place-items:center;
+    font-weight:1000;font-size:18px;
+  }
+  .pfp img{width:100%;height:100%;object-fit:cover}
+  .pfpMeta{flex:1}
+  .pfpTitle{font-weight:1000;font-size:13px}
+  .pfpHint{margin-top:5px;font-size:12px;opacity:.65}
+
+  .pfpBtn{
+    padding:10px 12px;border-radius:14px;
+    border:1px solid rgba(255,255,255,0.16);
+    background:rgba(0,0,0,0.24);
+    color:white;cursor:pointer;font-weight:1000;
+    transition: transform .15s ease;white-space:nowrap;
+  }
+  .pfpBtn:hover{transform:translateY(-2px)}
+
+  .field{margin-top:14px}
+  .field label{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+
+  input{
+    width:100%;
+    padding:12px 14px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.16);
+    background: rgba(0,0,0,0.22);
+    color:white;
+    outline:none;
+    transition:.25s ease;
+  }
+  input:focus{
+    border-color: rgba(34,211,238,0.46);
+    box-shadow:0 0 0 4px rgba(34,211,238,0.12);
+  }
+
+  .inputWrap{position:relative}
+  .eyeBtn{
+    position:absolute;
+    right:10px;
+    top:50%;
+    transform:translateY(-50%);
+    width:34px;height:34px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.18);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    cursor:pointer;
+    user-select:none;
+  }
+  .eyeBtn svg{width:17px;height:17px;opacity:.95}
+
+  .strength{margin-top:10px;display:flex;gap:10px;align-items:center;}
+  .bar{flex:1;height:10px;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background: rgba(0,0,0,0.20);overflow:hidden;}
+  .fill{height:100%;width:0%;border-radius:999px;transition: width .25s ease;}
+  .label{font-size:12px;color:rgba(255,255,255,0.72);min-width:92px;text-align:right;font-weight:800;}
+
+  .checklist{
+    margin-top:10px;
+    display:grid;
+    gap:7px;
+    grid-template-columns: 1fr 1fr;
+    font-size:12px;
+    color:rgba(255,255,255,0.70);
+  }
+  .rule{
+    display:flex;align-items:center;gap:8px;
+    padding:8px 10px;border-radius:14px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.18);
+  }
+  .dot{
+    width:10px;height:10px;border-radius:50%;
+    background: rgba(239,68,68,0.9);
+    box-shadow: 0 0 14px rgba(239,68,68,0.25);
+    flex:0 0 auto;
+  }
+  .rule.ok .dot{
+    background: rgba(34,197,94,0.95);
+    box-shadow: 0 0 14px rgba(34,197,94,0.28);
+  }
+  .rule span{font-weight:800;color:rgba(255,255,255,0.86)}
+
+  .toggleRow{
+    margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:12px 14px;border-radius:18px;border:1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.22);
+    font-size:13px;color:rgba(255,255,255,0.85);
+  }
+  .switch{
+    width:46px;height:26px;border-radius:999px;
+    background: rgba(255,255,255,0.16);
+    position:relative;cursor:pointer;transition: background .2s ease;
+    flex-shrink:0;
+  }
+  .knob{
+    width:20px;height:20px;border-radius:50%;
+    background:white;position:absolute;top:3px;left:3px;
+    transition: transform .2s ease;
+  }
+  .switch.on{background: linear-gradient(135deg,var(--accent),var(--accent2))}
+  .switch.on .knob{transform: translateX(20px)}
+
+  .btn{
+    width:100%;
+    margin-top:18px;
+    padding:12px 14px;
+    border-radius:14px;
+    border:none;
+    cursor:pointer;
+    font-weight:800;
+    color:white;
+    background: linear-gradient(135deg,var(--accent),var(--accent2));
+    box-shadow: 0 18px 60px rgba(167,139,250,0.18);
+    transition: transform .16s ease, filter .2s ease;
+  }
+  .btn:hover{transform:translateY(-2px);filter:brightness(1.06)}
+  .btn:disabled{opacity:.7;cursor:not-allowed;transform:none}
+
+  a{color:#22d3ee;text-decoration:none;font-weight:800}
+  a:hover{text-decoration:underline}
+
+  .err{margin-top:12px;color:#fca5a5;font-size:13px;display:none}
+  .success{
+    margin-top:14px;padding:12px 14px;border-radius:16px;
+    border:1px solid rgba(255,255,255,0.16);
+    background: rgba(34,211,238,0.12);
+    font-size:13px;color: rgba(255,255,255,0.92);
+    display:none;
+  }
+
+  #confetti{position:fixed;inset:0;pointer-events:none;display:none;z-index:50;}
+
+  /* ✅ Cropper modal */
+  #cropBackdrop{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.55);
+    backdrop-filter: blur(10px);
+    z-index:200;
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .2s ease;
+  }
+  #cropBackdrop.active{opacity:1;pointer-events:auto}
+
+  #cropModal{
+    position:fixed; left:50%; top:50%;
+    transform:translate(-50%,-50%) scale(.96);
+    width:min(560px,92vw);
+    border-radius:22px;
+    border:1px solid rgba(255,255,255,0.18);
+    background:linear-gradient(180deg, rgba(20,25,40,0.92), rgba(10,12,20,0.78));
+    backdrop-filter: blur(20px);
+    z-index:201;
+    padding:16px;
+    box-shadow: 0 60px 160px rgba(0,0,0,0.75);
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  #cropModal.active{
+    opacity:1;
+    pointer-events:auto;
+    transform:translate(-50%,-50%) scale(1);
+  }
+
+  .cropTop{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+  }
+  .cropTitle{font-weight:1000;font-size:14px}
+  .cropClose{
+    width:36px;height:36px;border-radius:14px;
+    border:1px solid rgba(255,255,255,0.14);
+    background:rgba(0,0,0,0.22);
+    color:white;
+    cursor:pointer;
+    font-weight:1000;
+  }
+
+  .cropArea{
+    margin-top:12px;
+    border-radius:18px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.22);
+  }
+  .cropArea img{
+    width:100%;
+    display:block;
+    max-height:420px;
+    object-fit:contain;
+  }
+
+  .cropActions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:12px;
+  }
+
+  .miniBtn{
+    padding:10px 12px;border-radius:14px;
+    border:1px solid rgba(255,255,255,0.16);
+    background:rgba(0,0,0,0.24);
+    color:white;cursor:pointer;font-weight:1000;
+    transition: transform .15s ease;
+  }
+  .miniBtn:hover{transform:translateY(-2px)}
+  .miniBtn.primary{
+    border:none;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+  }
+</style>
+</head>
+
+<body>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+
+  <canvas id="confetti"></canvas>
+
+  <!-- ✅ Cropper modal -->
+  <div id="cropBackdrop"></div>
+  <div id="cropModal">
+    <div class="cropTop">
+      <div class="cropTitle">Adjust Profile Picture</div>
+      <button class="cropClose" id="cropCloseBtn">✕</button>
+    </div>
+
+    <div class="cropArea">
+      <img id="cropImage" alt="cropper" />
+    </div>
+
+    <div class="cropActions">
+      <button class="miniBtn" type="button" id="zoomInBtn">＋ Zoom</button>
+      <button class="miniBtn" type="button" id="zoomOutBtn">－ Zoom</button>
+      <button class="miniBtn" type="button" id="rotateBtn">⟲ Rotate</button>
+
+      <button class="miniBtn primary" type="button" id="saveCropBtn" style="margin-left:auto;">✅ Use this photo</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="brand">
+      <div class="logo">M</div>
+      <div>
+        <h1>MoodMap</h1>
+        <div class="sub">Create your account</div>
+      </div>
+    </div>
+
+    <div class="pfpRow">
+      <div class="pfp" id="pfpPreview">M</div>
+      <div class="pfpMeta">
+        <div class="pfpTitle">Profile picture</div>
+        <div class="pfpHint">Optional · Crop before setting</div>
+      </div>
+      <button class="pfpBtn" id="pfpUploadBtn">Upload</button>
+      <input id="pfp" type="file" accept="image/png,image/jpeg,image/webp" style="display:none"/>
+    </div>
+
+    <div class="field">
+      <label>Name</label>
+      <input id="name" placeholder="Name" />
+    </div>
+
+    <div class="field">
+      <label>Username</label>
+      <input id="username" placeholder="Username (e.g. mitesh_07)" />
+    </div>
+
+    <div class="field">
+      <label>Email</label>
+      <input id="email" placeholder="Email" />
+    </div>
+
+    <div class="field">
+      <label>Password</label>
+      <div class="inputWrap">
+        <input id="password" type="password" placeholder="Password" />
+        <div class="eyeBtn" id="toggleSignPass" title="Show/Hide password">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="white" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="3" stroke="white" stroke-width="1.8"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="strength">
+        <div class="bar"><div class="fill" id="strengthFill"></div></div>
+        <div class="label" id="strengthLabel">Weak</div>
+      </div>
+
+      <div class="checklist">
+        <div class="rule" id="rLen"><div class="dot"></div><span>8+ chars</span></div>
+        <div class="rule" id="rUpper"><div class="dot"></div><span>Uppercase</span></div>
+        <div class="rule" id="rNum"><div class="dot"></div><span>Number</span></div>
+        <div class="rule" id="rSpec"><div class="dot"></div><span>Special</span></div>
+      </div>
+    </div>
+
+    <div class="toggleRow">
+      <div>
+        <div style="font-weight:1000;">Private profile</div>
+        <div style="opacity:.65;font-size:12px;margin-top:4px">Private accounts need follow approval.</div>
+      </div>
+      <div class="switch" id="privacySwitch" onclick="togglePrivacy()">
+        <div class="knob"></div>
+      </div>
+    </div>
+
+    <button class="btn" id="signupBtn" onclick="signup()">Sign up</button>
+
+    <div class="success" id="successBox">✅ Account created successfully! Uploading picture…</div>
+    <div class="err" id="err"></div>
+
+    <p style="margin-top:14px;font-size:13px;color:rgba(255,255,255,0.7)">
+      Already have an account? <a href="/login">Login</a>
+    </p>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+
+<script>
+let isPrivate=false;
+
+/* ✅ NEW: store cropped image as dataURL */
+let croppedPfpDataUrl = "";
+let cropper = null;
+
+function togglePrivacy(){
+  isPrivate=!isPrivate;
+  document.getElementById("privacySwitch").classList.toggle("on", isPrivate);
+}
+
+/* preview box */
+const preview=document.getElementById("pfpPreview");
+
+/* upload input */
+const pfpInput=document.getElementById("pfp");
+const uploadBtn=document.getElementById("pfpUploadBtn");
+
+/* crop modal elements */
+const cropBackdrop=document.getElementById("cropBackdrop");
+const cropModal=document.getElementById("cropModal");
+const cropImage=document.getElementById("cropImage");
+const cropCloseBtn=document.getElementById("cropCloseBtn");
+const zoomInBtn=document.getElementById("zoomInBtn");
+const zoomOutBtn=document.getElementById("zoomOutBtn");
+const rotateBtn=document.getElementById("rotateBtn");
+const saveCropBtn=document.getElementById("saveCropBtn");
+
+uploadBtn.addEventListener("click", ()=>{
+  pfpInput.click();
+});
+
+function openCropper(file){
+  const url = URL.createObjectURL(file);
+
+  cropImage.src = url;
+  cropBackdrop.classList.add("active");
+  cropModal.classList.add("active");
+
+  if(cropper){
+    cropper.destroy();
+    cropper=null;
+  }
+
+  cropper = new Cropper(cropImage,{
+    aspectRatio:1,
+    viewMode:1,
+    dragMode:"move",
+    autoCropArea:1,
+    background:false,
+    guides:false,
+    center:true
+  });
+}
+
+function closeCropper(){
+  cropBackdrop.classList.remove("active");
+  cropModal.classList.remove("active");
+}
+
+cropBackdrop.addEventListener("click", closeCropper);
+cropCloseBtn.onclick = closeCropper;
+
+zoomInBtn.onclick = ()=>{ if(cropper) cropper.zoom(0.1); };
+zoomOutBtn.onclick = ()=>{ if(cropper) cropper.zoom(-0.1); };
+rotateBtn.onclick = ()=>{ if(cropper) cropper.rotate(90); };
+
+pfpInput.addEventListener("change",(e)=>{
+  const file=e.target.files?.[0];
+  if(!file) return;
+
+  // ✅ Open cropper instead of direct set
+  openCropper(file);
+});
+
+saveCropBtn.addEventListener("click", ()=>{
+  if(!cropper) return;
+
+  const canvas = cropper.getCroppedCanvas({
+    width:512,
+    height:512,
+    imageSmoothingQuality:"high"
+  });
+
+  // ✅ compress + keep in base64
+  croppedPfpDataUrl = canvas.toDataURL("image/jpeg", 0.92);
+
+  // ✅ show preview
+  preview.innerHTML = `<img src="${croppedPfpDataUrl}" />`;
+
+  closeCropper();
+});
+
+/* show/hide password */
+const passEl=document.getElementById("password");
+document.getElementById("toggleSignPass").addEventListener("click", ()=>{
+  passEl.type = passEl.type === "password" ? "text" : "password";
+});
+
+/* checklist */
+const rLen=document.getElementById("rLen");
+const rUpper=document.getElementById("rUpper");
+const rNum=document.getElementById("rNum");
+const rSpec=document.getElementById("rSpec");
+
+/* strength */
+const fill=document.getElementById("strengthFill");
+const label=document.getElementById("strengthLabel");
+
+function scorePassword(p){
+  let score=0;
+  if(!p) return 0;
+  if(p.length >= 6) score++;
+  if(p.length >= 10) score++;
+  if(/[A-Z]/.test(p)) score++;
+  if(/[0-9]/.test(p)) score++;
+  if(/[^A-Za-z0-9]/.test(p)) score++;
+  return Math.min(score,5);
+}
+
+function updateChecklist(p){
+  rLen.classList.toggle("ok", p.length >= 8);
+  rUpper.classList.toggle("ok", /[A-Z]/.test(p));
+  rNum.classList.toggle("ok", /[0-9]/.test(p));
+  rSpec.classList.toggle("ok", /[^A-Za-z0-9]/.test(p));
+}
+
+function updateStrength(){
+  const p = passEl.value;
+  updateChecklist(p);
+
+  const s=scorePassword(p);
+  const pct=[0,20,40,60,80,100][s];
+  fill.style.width=pct+"%";
+
+  if(s<=1){
+    fill.style.background="#ef4444";
+    label.innerText="Weak";
+  }else if(s===2){
+    fill.style.background="#f59e0b";
+    label.innerText="Medium";
+  }else if(s===3){
+    fill.style.background="#22c55e";
+    label.innerText="Good";
+  }else{
+    fill.style.background="#22d3ee";
+    label.innerText="Strong";
+  }
+}
+passEl.addEventListener("input", updateStrength);
+updateStrength();
+
+/* ✅ NEW: upload cropped pfp base64 after signup */
+async function uploadCroppedPfpIfAny(){
+  if(!croppedPfpDataUrl) return true;
+
+  try{
+    const r = await fetch("/api/profile/upload_pfp_base64",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({data_url: croppedPfpDataUrl})
+    });
+    const d = await r.json();
+    return !!d.success;
+  }catch{
+    return false;
+  }
+}
+
+async function signup(){
+  const name=document.getElementById("name").value.trim();
+  const username=document.getElementById("username").value.trim();
+  const email=document.getElementById("email").value.trim();
+  const password=passEl.value;
+
+  const err=document.getElementById("err");
+  const success=document.getElementById("successBox");
+  const btn=document.getElementById("signupBtn");
+
+  err.style.display="none";
+  success.style.display="none";
+
+  if(!name || !username || !email || !password){
+    err.style.display="block";
+    err.innerText="All fields are required.";
+    btn.disabled=false;
+    btn.innerText="Sign up";
+    return;
+  }
+
+  btn.disabled=true;
+  btn.innerText="Creating…";
+
+  try{
+    const r=await fetch("/signup",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name,username,email,password,is_private:isPrivate})
+    });
+
+    const d=await r.json();
+
+    if(!d.success){
+      err.style.display="block";
+      err.innerText=d.message || "Signup failed";
+      btn.disabled=false;
+      btn.innerText="Sign up";
+      return;
+    }
+
+    success.style.display="block";
+    localStorage.setItem("moodmap_saved_email", email);
+    localStorage.setItem("moodmap_saved_name", name);
+
+    launchConfetti();
+
+    // ✅ upload cropped image if selected
+    await uploadCroppedPfpIfAny();
+
+    setTimeout(()=> location.href="/", 900);
+
+  }catch(e){
+    err.style.display="block";
+    err.innerText="Server error. Try again.";
+    btn.disabled=false;
+    btn.innerText="Sign up";
+  }
+}
+
+/* confetti */
+function launchConfetti(){
+  const canvas=document.getElementById("confetti");
+  const ctx=canvas.getContext("2d");
+  canvas.style.display="block";
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+
+  const pieces=[];
+  const colors=["#22d3ee","#a78bfa","#60a5fa","#fb7185","#34d399","#fbbf24"];
+
+  for(let i=0;i<130;i++){
+    pieces.push({
+      x: Math.random()*canvas.width,
+      y: -20 - Math.random()*canvas.height*0.2,
+      r: 3 + Math.random()*4,
+      vx: (Math.random()-0.5)*5,
+      vy: 3 + Math.random()*6,
+      rot: Math.random()*360,
+      vr: (Math.random()-0.5)*12,
+      c: colors[Math.floor(Math.random()*colors.length)],
+      a: 1
+    });
+  }
+
+  const start=Date.now();
+  function frame(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(const p of pieces){
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      p.vy += 0.06; p.a -= 0.0032;
+
+      ctx.save();
+      ctx.globalAlpha=Math.max(0,p.a);
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.c;
+      ctx.fillRect(-p.r, -p.r, p.r*2, p.r*2);
+      ctx.restore();
+    }
+    if(Date.now()-start < 1400) requestAnimationFrame(frame);
+    else canvas.style.display="none";
+  }
+  frame();
+}
+</script>
+</body>
+</html>
