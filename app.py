@@ -21,9 +21,14 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "moodmaps_super_secret_key_123")
 
 # =========================================================
-# ✅ OVERPASS URL
+# ✅ OVERPASS URL (fallback list)
 # =========================================================
-OVERPASS_URL = os.environ.get("OVERPASS_URL", "https://overpass-api.de/api/interpreter")
+OVERPASS_URLS = [
+    os.environ.get("OVERPASS_URL", "").strip() or "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.nchc.org.tw/api/interpreter",
+]
+
 
 # =========================================================
 # ✅ UPLOAD CONFIG
@@ -993,13 +998,10 @@ def api_forgot():
         db.execute("INSERT INTO password_resets(user_id, code, expires_at) VALUES(?,?,?)",
                    (user["id"], code, expires_at))
 
-    # ✅ debugging
     print("\n✅ MoodMap Reset Code:", code, "(valid for 10 minutes)\n")
 
-    # ✅ PERFORMANCE FIX: send mail async
     send_reset_email_async(email, code)
 
-    # ✅ respond instantly (no waiting SMTP)
     return jsonify({"success": True, "sent": True})
 
 
@@ -1125,25 +1127,39 @@ def fetch_places(tags, lat, lon, radius=5000):
         blocks.append(f'node["amenity"="{tag}"](around:{radius},{lat},{lon});')
 
     query = f"""
-    [out:json][timeout:25];
+    [out:json][timeout:15];
     (
       {''.join(blocks)}
     );
-    out body 40;
+    out 30;
     """
 
-    try:
-        res = requests.post(OVERPASS_URL, data=query, timeout=25)
-    except:
-        return []
+    headers = {
+        "User-Agent": "MoodMap/1.0 (contact: moodmap)",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Cache-Control": "no-cache"
+    }
 
-    if not res.text.strip() or "html" in res.text.lower():
-        return []
+    for url in OVERPASS_URLS:
+        try:
+            res = requests.post(url, data=query, timeout=15, headers=headers)
+            txt = (res.text or "").strip()
 
-    try:
-        return res.json().get("elements", [])
-    except:
-        return []
+            # blocked or HTML response
+            if not txt or "html" in txt.lower():
+                continue
+
+            data = res.json()
+            elements = data.get("elements", [])
+            if elements:
+                return elements
+
+        except Exception as e:
+            print("⚠️ Overpass fail:", url, "->", e)
+            continue
+
+    return []
+
 
 
 @app.route("/api/recommend", methods=["POST"])
@@ -1164,6 +1180,11 @@ def recommend():
         return jsonify([])
 
     raw = fetch_places(tags, user_lat, user_lon, 5000)
+
+    # ✅ retry once if Overpass returns empty (common)
+    if not raw:
+        time.sleep(0.7)
+        raw = fetch_places(tags, user_lat, user_lon, 5000)
 
     places = []
     for i, p in enumerate(raw):

@@ -88,33 +88,128 @@ function animateParticles() {
 }
 animateParticles();
 
-/* ✅ LOCATION FIX */
+/* =========================================================
+   ✅ LOCATION (HARD FIX: works on Desktop + Mobile)
+   ========================================================= */
+
 const findBtn = document.getElementById("findBtn");
+let lastGeoFixAt = 0;
+let lastGeoAcc = null;
+
+function setFindBtnState(disabled, label) {
+  if (!findBtn) return;
+  findBtn.disabled = disabled;
+  if (label) findBtn.innerText = label;
+}
+
+function isLocationValid() {
+  return userLat != null && userLon != null && isFinite(userLat) && isFinite(userLon);
+}
+
+function isLocationFresh() {
+  const now = Date.now();
+  const ageMs = now - lastGeoFixAt;
+
+  if (!isLocationValid()) return false;
+
+  // allow a bit more time on desktop
+  if (ageMs > 20000) return false;
+
+  // accuracy check (desktop can be high)
+  if (lastGeoAcc != null && isFinite(lastGeoAcc)) {
+    if (lastGeoAcc > 5000) return false;
+  }
+
+  return true;
+}
+
+async function forceGetLocationOnce(timeoutMs = 12000) {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        userLat = pos.coords.latitude;
+        userLon = pos.coords.longitude;
+        lastGeoFixAt = Date.now();
+        lastGeoAcc = pos.coords.accuracy;
+        ready = true;
+
+        console.log("✅ getCurrentPosition location:", userLat, userLon, "acc:", lastGeoAcc);
+
+        resolve(true);
+      },
+      (err) => {
+        console.log("❌ getCurrentPosition failed:", err);
+        resolve(false);
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: timeoutMs }
+    );
+  });
+}
+
+async function ensureFreshLocation(maxWaitMs = 9000) {
+  const start = Date.now();
+
+  if (isLocationFresh()) return true;
+
+  // try immediate one-shot location request
+  const ok = await forceGetLocationOnce(12000);
+  if (ok && isLocationFresh()) return true;
+
+  // else wait for watchPosition updates
+  return new Promise((resolve) => {
+    const timer = setInterval(() => {
+      if (isLocationFresh()) {
+        clearInterval(timer);
+        resolve(true);
+        return;
+      }
+
+      if (Date.now() - start > maxWaitMs) {
+        clearInterval(timer);
+        resolve(false);
+      }
+    }, 200);
+  });
+}
 
 if (findBtn) {
-  findBtn.disabled = true;
-  findBtn.innerText = "Getting location…";
+  setFindBtnState(true, "Getting location…");
   findBtn.onclick = findPlaces;
 
-  navigator.geolocation.watchPosition(
-    (pos) => {
-      userLat = pos.coords.latitude;
-      userLon = pos.coords.longitude;
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(
+      (pos) => {
+        userLat = pos.coords.latitude;
+        userLon = pos.coords.longitude;
+        lastGeoFixAt = Date.now();
+        lastGeoAcc = pos.coords.accuracy;
 
-      if (!ready) {
-        ready = true;
-        findBtn.disabled = false;
-        findBtn.innerText = "Find nearby places";
-      }
-    },
-    () => {
-      alert("Location permission required");
-      findBtn.disabled = true;
-      findBtn.innerText = "Enable location";
-    },
-    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
-  );
+        if (!ready) {
+          ready = true;
+          setFindBtnState(false, "Find nearby places");
+        } else if (!loading) {
+          setFindBtnState(false);
+        }
+
+        console.log("📍 watchPosition:", userLat, userLon, "acc:", lastGeoAcc);
+      },
+      (err) => {
+        console.log("❌ watchPosition error:", err);
+        ready = false;
+        setFindBtnState(false, "Find nearby places"); // allow click to request GPS manually
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+    );
+  } else {
+    setFindBtnState(false, "Find nearby places");
+  }
 }
+
 
 /* time helper */
 function pad2(n) { return String(n).padStart(2, "0"); }
@@ -130,7 +225,6 @@ function formatTime(dateObj) {
 function getOpenStatus(place) {
   const oh = place.opening_hours;
 
-  // ✅ FIXED BUG
   if (!oh || typeof window.opening_hours === "undefined") {
     return { unknown: true };
   }
@@ -505,25 +599,62 @@ async function setCurrentMood(mood) {
   } catch { }
 }
 
-/* find places */
+/* ✅ improved empty response UI */
+function showNoPlacesMessage() {
+  const results = document.getElementById("results");
+  results.innerHTML = `
+    <div style="opacity:.75; padding:45px 0; text-align:center;">
+      ⚠️ No places found.<br>
+      <span style="font-size:13px;opacity:.75;">
+        Overpass may be slow / rate-limited. Try again in a few seconds.
+      </span>
+    </div>
+  `;
+}
+
+/* =========================================================
+   ✅ Find places (Fixed: waits for fresh GPS + smart retry)
+   ========================================================= */
+
+async function fetchPlacesFromAPI(mood) {
+  const r = await fetch("/api/recommend", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mood, latitude: userLat, longitude: userLon })
+  });
+
+  const data = await r.json();
+  return Array.isArray(data) ? data : [];
+}
+
+/* ✅ Find places (Improved) */
 async function findPlaces() {
-  if (!ready || loading) return;
+  if (loading) return;
   loading = true;
 
   const mood = document.getElementById("mood").value;
   applyMoodTheme(mood);
-
   setCurrentMood(mood);
 
-  const btn = document.getElementById("findBtn");
-  btn.disabled = true;
-  btn.innerText = "Searching…";
-
+  setFindBtnState(true, "Searching…");
   setSkeleton();
 
   try {
+    console.log("🟡 Before ensureFreshLocation -> ready:", ready, "lat:", userLat, "lon:", userLon);
+
+    const ok = await ensureFreshLocation(10000);
+
+    console.log("🟢 After ensureFreshLocation -> ok:", ok, "ready:", ready, "lat:", userLat, "lon:", userLon, "acc:", lastGeoAcc);
+
+    if (!ok || !isLocationValid()) {
+      showNoPlacesMessage();
+      return;
+    }
+
     await fetchFavoritesFromDB();
     renderSavedGrouped();
+
+    console.log("➡️ Calling /api/recommend ...");
 
     const r = await fetch("/api/recommend", {
       method: "POST",
@@ -532,15 +663,23 @@ async function findPlaces() {
     });
 
     const data = await r.json();
-    lastPlaces = data || [];
+    lastPlaces = Array.isArray(data) ? data : [];
+
+    console.log("✅ /api/recommend returned:", lastPlaces.length, "places");
+
+    if (!lastPlaces.length) {
+      showNoPlacesMessage();
+      return;
+    }
+
     renderPlacesFiltered();
-  } catch {
+  } catch (e) {
+    console.log("❌ findPlaces error:", e);
     lastPlaces = [];
-    renderPlacesFiltered();
+    showNoPlacesMessage();
   } finally {
     loading = false;
-    btn.disabled = false;
-    btn.innerText = "Find nearby places";
+    setFindBtnState(false, "Find nearby places");
 
     await fetchFavoritesFromDB();
     renderSavedGrouped();
