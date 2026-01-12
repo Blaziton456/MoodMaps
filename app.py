@@ -325,16 +325,30 @@ def build_reset_email_html(code: str):
 """
 
 
+# =========================================================
+# ✅ EMAIL SENDING (RENDER SAFE FIX)
+# =========================================================
 def _send_reset_email_sync(to_email, code):
     """
-    Internal sync mail sender.
-    This is called inside a background thread for performance.
+    ✅ Render-safe synchronous mail sender (no background threads).
+    Also prints debug logs so you can verify in Render logs.
     """
     if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
         print("⚠️ Mail ENV not configured, cannot send email.")
+        print("   MAIL_USERNAME:", app.config.get("MAIL_USERNAME"))
+        print("   MAIL_PASSWORD:", "SET" if app.config.get("MAIL_PASSWORD") else "EMPTY")
         return False
 
     try:
+        print("📨 Sending reset email via SMTP...")
+        print("   -> to:", to_email)
+        print("   -> server:", app.config.get("MAIL_SERVER"))
+        print("   -> port:", app.config.get("MAIL_PORT"))
+        print("   -> tls:", app.config.get("MAIL_USE_TLS"))
+        print("   -> ssl:", app.config.get("MAIL_USE_SSL"))
+        print("   -> username:", app.config.get("MAIL_USERNAME"))
+        print("   -> default sender:", app.config.get("MAIL_DEFAULT_SENDER"))
+
         msg = Message(
             subject="MoodMap Password Reset Code",
             recipients=[to_email]
@@ -343,27 +357,21 @@ def _send_reset_email_sync(to_email, code):
         msg.html = build_reset_email_html(code)
 
         mail.send(msg)
+
+        print("✅ Email sent successfully ✅")
         return True
+
     except Exception as e:
-        print("❌ Email sending failed:", e)
+        print("❌ Email sending failed:", repr(e))
         return False
 
 
 def send_reset_email_async(to_email, code):
     """
-    ✅ FAST: sends mail in background thread.
-    Forgot API returns instantly.
+    ⛔ Disabled async threads for Render (threads can die silently).
+    ✅ Always send synchronously.
     """
-    def runner():
-        try:
-            with app.app_context():
-                _send_reset_email_sync(to_email, code)
-        except Exception as e:
-            print("❌ Background email thread error:", e)
-
-    t = threading.Thread(target=runner, daemon=True)
-    t.start()
-    return True
+    return _send_reset_email_sync(to_email, code)
 
 
 # =========================================================
@@ -1000,7 +1008,9 @@ def api_forgot():
 
     print("\n✅ MoodMap Reset Code:", code, "(valid for 10 minutes)\n")
 
-    send_reset_email_async(email, code)
+    ok = send_reset_email_async(email, code)
+    if not ok:
+        return jsonify({"success": False, "message": "Email sending failed. Try again later."})
 
     return jsonify({"success": True, "sent": True})
 
@@ -1145,7 +1155,6 @@ def fetch_places(tags, lat, lon, radius=5000):
             res = requests.post(url, data=query, timeout=15, headers=headers)
             txt = (res.text or "").strip()
 
-            # blocked or HTML response
             if not txt or "html" in txt.lower():
                 continue
 
@@ -1159,7 +1168,6 @@ def fetch_places(tags, lat, lon, radius=5000):
             continue
 
     return []
-
 
 
 @app.route("/api/recommend", methods=["POST"])
@@ -1181,7 +1189,6 @@ def recommend():
 
     raw = fetch_places(tags, user_lat, user_lon, 5000)
 
-    # ✅ retry once if Overpass returns empty (common)
     if not raw:
         time.sleep(0.7)
         raw = fetch_places(tags, user_lat, user_lon, 5000)
