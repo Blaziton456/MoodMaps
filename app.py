@@ -6,6 +6,7 @@ import requests
 import random
 import os
 import base64
+import threading
 from math import radians, cos, sin, asin, sqrt
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -44,7 +45,10 @@ app.config["MAIL_USE_SSL"] = os.environ.get("MAIL_USE_SSL", "0") == "1"
 # ✅ IMPORTANT: DO NOT hardcode these in GitHub
 app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME", "")
 app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD", "")
-app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_DEFAULT_SENDER", app.config["MAIL_USERNAME"])
+app.config["MAIL_DEFAULT_SENDER"] = os.environ.get(
+    "MAIL_DEFAULT_SENDER",
+    app.config["MAIL_USERNAME"]
+)
 
 mail = Mail(app)
 
@@ -167,6 +171,82 @@ with get_db() as db:
     except:
         pass
 
+    # =========================================================
+    # ✅ MAINTENANCE MODE (DB META STORAGE)
+    # =========================================================
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS app_meta(
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    """)
+    db.execute("INSERT OR IGNORE INTO app_meta(key, value) VALUES(?,?)", ("maintenance_mode", "0"))
+
+
+# =========================================================
+# ✅ MAINTENANCE HELPERS
+# =========================================================
+def get_maintenance_mode():
+    try:
+        with get_db() as db:
+            row = db.execute("SELECT value FROM app_meta WHERE key=?", ("maintenance_mode",)).fetchone()
+            if not row:
+                return False
+            return str(row["value"]) == "1"
+    except:
+        return False
+
+
+def set_maintenance_mode(is_on: bool):
+    try:
+        with get_db() as db:
+            db.execute("UPDATE app_meta SET value=? WHERE key=?",
+                       ("1" if is_on else "0", "maintenance_mode"))
+    except Exception as e:
+        print("⚠️ set_maintenance_mode error:", e)
+
+
+@app.context_processor
+def inject_globals():
+    return {
+        "maintenance_mode": get_maintenance_mode()
+    }
+
+
+# =========================================================
+# ✅ MAINTENANCE GATE (BLOCK SITE WHEN ON)
+# =========================================================
+@app.before_request
+def maintenance_gate():
+    """
+    When maintenance is ON:
+    - block all routes
+    - allow only login/logout/reset + static
+    - allow admin toggle endpoint
+    """
+    try:
+        if request.path.startswith("/static/"):
+            return None
+
+        if get_maintenance_mode():
+            allowed_paths = {
+                "/login",
+                "/logout",
+                "/forgot",
+                "/reset",
+                "/api/forgot",
+                "/api/reset",
+                "/api/admin/maintenance",
+            }
+
+            if request.path in allowed_paths:
+                return None
+
+            return render_template("maintenance.html"), 503
+    except Exception as e:
+        print("⚠️ maintenance_gate error:", e)
+        return None
+
 
 # =========================================================
 # ✅ EMAIL TEMPLATE
@@ -240,8 +320,11 @@ def build_reset_email_html(code: str):
 """
 
 
-def send_reset_email(to_email, code):
-    # ✅ if no env config, just fail gracefully
+def _send_reset_email_sync(to_email, code):
+    """
+    Internal sync mail sender.
+    This is called inside a background thread for performance.
+    """
     if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
         print("⚠️ Mail ENV not configured, cannot send email.")
         return False
@@ -253,11 +336,29 @@ def send_reset_email(to_email, code):
         )
         msg.body = f"Your MoodMap reset code is {code}. Valid for 10 minutes."
         msg.html = build_reset_email_html(code)
+
         mail.send(msg)
         return True
     except Exception as e:
         print("❌ Email sending failed:", e)
         return False
+
+
+def send_reset_email_async(to_email, code):
+    """
+    ✅ FAST: sends mail in background thread.
+    Forgot API returns instantly.
+    """
+    def runner():
+        try:
+            with app.app_context():
+                _send_reset_email_sync(to_email, code)
+        except Exception as e:
+            print("❌ Background email thread error:", e)
+
+    t = threading.Thread(target=runner, daemon=True)
+    t.start()
+    return True
 
 
 # =========================================================
@@ -331,6 +432,16 @@ def delete_profile_pic_file(profile_pic_url: str):
             os.remove(abs_path)
     except Exception as e:
         print("⚠️ delete_profile_pic_file error:", e)
+
+
+# =========================================================
+# ✅ ADMIN CHECK (for maintenance toggle)
+# =========================================================
+def is_admin(uid):
+    try:
+        return uid and int(uid) == 1
+    except:
+        return False
 
 
 # =========================================================
@@ -435,6 +546,25 @@ def logout():
     resp = redirect("/login")
     resp.delete_cookie("remember_token")
     return resp
+
+
+# =========================================================
+# ✅ MAINTENANCE ADMIN ENDPOINT
+# =========================================================
+@app.route("/api/admin/maintenance", methods=["GET", "POST"])
+def api_admin_maintenance():
+    uid = current_user()
+    if not uid or not is_admin(uid):
+        return jsonify({"success": False, "message": "Forbidden"}), 403
+
+    if request.method == "GET":
+        return jsonify({"success": True, "maintenance": get_maintenance_mode()})
+
+    data = request.json or {}
+    new_state = True if data.get("maintenance", False) else False
+    set_maintenance_mode(new_state)
+
+    return jsonify({"success": True, "maintenance": get_maintenance_mode()})
 
 
 # =========================================================
@@ -718,7 +848,8 @@ def public_profile(username):
         viewer_logged_in=True if viewer_id else False,
         is_owner=True if viewer_id and viewer_id == user["id"] else False,
         profile_pic=user["profile_pic"] or "",
-        places=places
+        places=places,
+        admin=True if is_admin(viewer_id) else False
     )
 
 
@@ -850,6 +981,7 @@ def api_forgot():
     with get_db() as db:
         user = db.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
 
+    # ✅ ALWAYS return success (avoid leaking user existence)
     if not user:
         return jsonify({"success": True, "sent": True})
 
@@ -861,12 +993,13 @@ def api_forgot():
         db.execute("INSERT INTO password_resets(user_id, code, expires_at) VALUES(?,?,?)",
                    (user["id"], code, expires_at))
 
+    # ✅ debugging
     print("\n✅ MoodMap Reset Code:", code, "(valid for 10 minutes)\n")
 
-    ok = send_reset_email(email, code)
-    if not ok:
-        return jsonify({"success": True, "sent": False})
+    # ✅ PERFORMANCE FIX: send mail async
+    send_reset_email_async(email, code)
 
+    # ✅ respond instantly (no waiting SMTP)
     return jsonify({"success": True, "sent": True})
 
 
@@ -876,6 +1009,9 @@ def api_reset():
     email = data.get("email", "").strip().lower()
     code = data.get("code", "").strip()
     new_password = data.get("new_password", "")
+
+    if not email or not code or not new_password or len(new_password) < 4:
+        return jsonify({"success": False, "message": "Invalid request"})
 
     with get_db() as db:
         user = db.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
@@ -966,7 +1102,6 @@ def api_favorites_remove():
 # ✅ PLACES API
 # =========================================================
 def haversine(lat1, lon1, lat2, lon2):
-    # ✅ FIXED BUG HERE
     lat1, lon1, lat2, lon2 = map(float, [lat1, lon1, lat2, lon2])
     lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
     dlon = lon2 - lon1

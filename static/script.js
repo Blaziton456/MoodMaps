@@ -90,26 +90,31 @@ animateParticles();
 
 /* ✅ LOCATION FIX */
 const findBtn = document.getElementById("findBtn");
-findBtn.onclick = findPlaces;
 
-navigator.geolocation.watchPosition(
-  (pos) => {
-    userLat = pos.coords.latitude;
-    userLon = pos.coords.longitude;
+if (findBtn) {
+  findBtn.disabled = true;
+  findBtn.innerText = "Getting location…";
+  findBtn.onclick = findPlaces;
 
-    if (!ready) {
-      ready = true;
-      findBtn.disabled = false;
-      findBtn.innerText = "Find nearby places";
-    }
-  },
-  () => {
-    alert("Location permission required");
-    findBtn.disabled = true;
-    findBtn.innerText = "Enable location";
-  },
-  { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
-);
+  navigator.geolocation.watchPosition(
+    (pos) => {
+      userLat = pos.coords.latitude;
+      userLon = pos.coords.longitude;
+
+      if (!ready) {
+        ready = true;
+        findBtn.disabled = false;
+        findBtn.innerText = "Find nearby places";
+      }
+    },
+    () => {
+      alert("Location permission required");
+      findBtn.disabled = true;
+      findBtn.innerText = "Enable location";
+    },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+  );
+}
 
 /* time helper */
 function pad2(n) { return String(n).padStart(2, "0"); }
@@ -124,13 +129,16 @@ function formatTime(dateObj) {
 /* open status */
 function getOpenStatus(place) {
   const oh = place.opening_hours;
-  if (!oh || typeof opening_hours === "undefined") {
+
+  // ✅ FIXED BUG
+  if (!oh || typeof window.opening_hours === "undefined") {
     return { unknown: true };
   }
+
   try {
     const lat = Number(place.lat);
     const lon = Number(place.lon);
-    const ohObj = new opening_hours(oh, { lat, lon }, { tag_key: "opening_hours" });
+    const ohObj = new window.opening_hours(oh, { lat, lon }, { tag_key: "opening_hours" });
     const now = new Date();
     const isOpen = ohObj.getState(now);
     const nextChange = ohObj.getNextChange(now);
@@ -366,7 +374,8 @@ function closeModal() {
 backdrop.addEventListener("click", closeModal);
 
 /* search listener */
-document.getElementById("searchInput").addEventListener("input", () => renderPlacesFiltered());
+const searchInput = document.getElementById("searchInput");
+if (searchInput) searchInput.addEventListener("input", () => renderPlacesFiltered());
 
 function setSkeleton() {
   const results = document.getElementById("results");
@@ -504,7 +513,6 @@ async function findPlaces() {
   const mood = document.getElementById("mood").value;
   applyMoodTheme(mood);
 
-  // ✅ set current mood for profile (Instagram style)
   setCurrentMood(mood);
 
   const btn = document.getElementById("findBtn");
@@ -574,13 +582,11 @@ async function hydrateMyUsername() {
     }
   } catch { }
 
-  // fallback = whatever template gave
   return window.MOODMAP_USERNAME || "";
 }
 
 /* ✅ Robust clipboard copy */
 async function copyTextSmart(text) {
-  // method 1: clipboard api
   try {
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text);
@@ -588,7 +594,6 @@ async function copyTextSmart(text) {
     }
   } catch { }
 
-  // method 2: fallback textarea
   try {
     const ta = document.createElement("textarea");
     ta.value = text;
@@ -660,8 +665,8 @@ function closeReqModal() {
   reqBackdrop.classList.remove("active");
   reqModal.classList.remove("active");
 }
-reqBackdrop.addEventListener("click", closeReqModal);
-reqCloseBtn.onclick = closeReqModal;
+if (reqBackdrop) reqBackdrop.addEventListener("click", closeReqModal);
+if (reqCloseBtn) reqCloseBtn.onclick = closeReqModal;
 
 async function fetchRequests() {
   try {
@@ -670,13 +675,17 @@ async function fetchRequests() {
     const list = Array.isArray(data) ? data : [];
     const n = list.length;
 
-    if (n > 0) {
-      reqBtn.style.display = "inline-flex";
-      reqCount.innerText = `(${n})`;
-    } else {
-      reqBtn.style.display = "none";
-      reqCount.innerText = "";
+    if (reqBtn && reqCount) {
+      if (n > 0) {
+        reqBtn.style.display = "inline-flex";
+        reqCount.innerText = `(${n})`;
+      } else {
+        reqBtn.style.display = "none";
+        reqCount.innerText = "";
+      }
     }
+
+    if (!reqList) return;
 
     reqList.innerHTML = "";
     if (!n) {
@@ -726,10 +735,12 @@ async function fetchRequests() {
   } catch { }
 }
 
-reqBtn.onclick = async () => {
-  await fetchRequests();
-  openReqModal();
-};
+if (reqBtn) {
+  reqBtn.onclick = async () => {
+    await fetchRequests();
+    openReqModal();
+  };
+}
 
 /* poll requests */
 (async function initRequests() {
@@ -749,13 +760,15 @@ let searchTimer = null;
 let lastQuery = "";
 
 function openDrop() {
-  userDrop.style.display = "block";
+  if (userDrop) userDrop.style.display = "block";
 }
 function closeDrop() {
-  userDrop.style.display = "none";
+  if (userDrop) userDrop.style.display = "none";
 }
 
 async function doUserSearch(q) {
+  if (!dropList) return;
+
   if (!q || q.length < 2) {
     dropList.innerHTML = `<div class="emptyDrop">Type at least 2 letters.</div>`;
     return;
@@ -806,25 +819,27 @@ async function doUserSearch(q) {
   }
 }
 
-userSearch.addEventListener("input", () => {
-  const q = (userSearch.value || "").trim().toLowerCase();
-  lastQuery = q;
-  openDrop();
+if (userSearch) {
+  userSearch.addEventListener("input", () => {
+    const q = (userSearch.value || "").trim().toLowerCase();
+    lastQuery = q;
+    openDrop();
 
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    doUserSearch(q);
-  }, 250);
-});
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      doUserSearch(q);
+    }, 250);
+  });
 
-userSearch.addEventListener("focus", () => {
-  openDrop();
-  doUserSearch((userSearch.value || "").trim().toLowerCase());
-});
+  userSearch.addEventListener("focus", () => {
+    openDrop();
+    doUserSearch((userSearch.value || "").trim().toLowerCase());
+  });
+}
 
 /* close dropdown when clicking outside */
 document.addEventListener("click", (e) => {
-  if (!searchWrap.contains(e.target)) {
+  if (searchWrap && !searchWrap.contains(e.target)) {
     closeDrop();
   }
 });

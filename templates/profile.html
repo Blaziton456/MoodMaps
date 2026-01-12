@@ -192,14 +192,13 @@
     border:none;
     background:linear-gradient(135deg,var(--accent),var(--accent2));
   }
-  .miniBtn.danger{
-    background:rgba(239,68,68,0.22);
-    border-color:rgba(239,68,68,0.30);
-  }
 </style>
 </head>
 
-<body data-owner="{% if is_owner %}1{% else %}0{% endif %}">
+<body
+  data-owner="{% if is_owner %}1{% else %}0{% endif %}"
+  data-admin="{% if admin %}1{% else %}0{% endif %}"
+>
 <div class="wrap">
 
   <!-- ✅ Cropper modal -->
@@ -348,7 +347,9 @@
 
 <script>
 const PROFILE_USERNAME = "{{profile_username}}";
+
 const IS_OWNER = document.body.dataset.owner === "1";
+const IS_ADMIN = document.body.dataset.admin === "1";
 
 function openMaps(lat, lon){
   window.open(`https://www.google.com/maps?q=${lat},${lon}`, "_blank");
@@ -363,12 +364,10 @@ function setAllPfps(newUrl){
   if(p1) p1.src = busted;
   if(p2) p2.src = busted;
 
-  // ✅ also update any navbar icons if present
   document.querySelectorAll('img[data-pfp="1"]').forEach(img=>{
     img.src = busted;
   });
 
-  // ✅ notify other pages / scripts (index navbar etc)
   try{
     window.dispatchEvent(new CustomEvent("moodmap:pfp-updated", { detail: { url: newUrl } }));
   }catch(e){}
@@ -560,6 +559,86 @@ if(IS_OWNER){
     };
   }
 }
+
+/* ✅ MAINTENANCE MODE TOGGLE (ADMIN ONLY) */
+(async function initMaintenanceToggle(){
+  try{
+    if(!IS_ADMIN) return;
+
+    const r = await fetch("/api/admin/maintenance");
+    const d = await r.json();
+    if(!d || !d.success) return;
+
+    const panel = document.createElement("div");
+    panel.className = "card";
+    panel.style.marginTop = "18px";
+
+    panel.innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:1000;font-size:14px">Admin Controls</div>
+          <div style="opacity:.7;font-size:12px;margin-top:6px;line-height:1.4">
+            Toggle maintenance mode. When ON, everyone sees Maintenance page except login/reset/admin toggle.
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <span id="maintBadge" class="badge">Loading…</span>
+          <button id="maintBtn" class="btn primary">Toggle</button>
+        </div>
+      </div>
+    `;
+
+    const wrap = document.querySelector(".wrap");
+    if(wrap) wrap.appendChild(panel);
+
+    const badge = document.getElementById("maintBadge");
+    const btn = document.getElementById("maintBtn");
+
+    function updateBadge(isOn){
+      badge.innerText = isOn ? "Maintenance: ON" : "Maintenance: OFF";
+      badge.style.borderColor = isOn ? "rgba(34,197,94,0.35)" : "rgba(239,68,68,0.35)";
+      badge.style.background = isOn ? "rgba(34,197,94,0.18)" : "rgba(239,68,68,0.16)";
+    }
+
+    updateBadge(Boolean(d.maintenance));
+
+    btn.onclick = async ()=>{
+      btn.disabled = true;
+      btn.innerText = "Toggling…";
+
+      try{
+        const g = await fetch("/api/admin/maintenance");
+        const gd = await g.json();
+        const next = !Boolean(gd.maintenance);
+
+        const rr = await fetch("/api/admin/maintenance",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({maintenance: next})
+        });
+        const rd = await rr.json();
+
+        if(rd && rd.success){
+          updateBadge(Boolean(rd.maintenance));
+          alert(rd.maintenance
+            ? "✅ Maintenance enabled. Everyone will see maintenance page now."
+            : "✅ Maintenance disabled. Site is live again."
+          );
+        }else{
+          alert("❌ Toggle failed");
+        }
+
+      }catch{
+        alert("❌ Server error");
+      }finally{
+        btn.disabled = false;
+        btn.innerText = "Toggle";
+      }
+    };
+
+  }catch(e){}
+})();
 </script>
 
 </body>

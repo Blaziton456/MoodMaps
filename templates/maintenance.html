@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoodMap – Maintenance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    body{
+      margin:0;
+      height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      font-family:Inter,system-ui;
+      background: radial-gradient(circle at 20% 20%, #a78bfa55, transparent 55%),
+                  radial-gradient(circle at 80% 80%, #22d3ee55, transparent 58%),
+                  linear-gradient(120deg,#020617,#0f172a);
+      color:white;
+      overflow:hidden;
+      padding:18px;
+    }
+    .card{
+      width:min(520px,92vw);
+      padding:26px 22px;
+      border-radius:24px;
+      border:1px solid rgba(255,255,255,0.16);
+      background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.06));
+      backdrop-filter: blur(18px);
+      box-shadow: 0 60px 140px rgba(0,0,0,0.65);
+      text-align:center;
+    }
+    .tag{
+      display:inline-flex;
+      padding:7px 12px;
+      border-radius:999px;
+      font-weight:1000;
+      font-size:12px;
+      border:1px solid rgba(255,255,255,0.14);
+      background:rgba(0,0,0,0.22);
+      margin-bottom:12px;
+    }
+    h1{margin:0;font-size:24px;font-weight:1000;letter-spacing:-.3px}
+    p{margin:10px 0 0;opacity:.75;font-size:13px;line-height:1.5}
+    .btns{
+      margin-top:18px;
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+    a{
+      text-decoration:none;
+      color:white;
+      font-weight:1000;
+      padding:11px 14px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.16);
+      background:rgba(0,0,0,0.26);
+      transition: transform .15s ease;
+    }
+    a:hover{transform:translateY(-2px)}
+    .small{margin-top:14px;font-size:12px;opacity:.55}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="tag">🚧 Maintenance Mode</div>
+    <h1>MoodMap is temporarily offline</h1>
+    <p>
+      We’re improving server performance and stability.<br>
+      Please check back in a few minutes.
+    </p>
+
+    <div class="btns">
+      <a href="/login">Login</a>
+      <a href="/forgot">Reset Password</a>
+    </div>
+
+    <div class="small">HTTP 503 — Service Unavailable</div>
+  </div>
+</body>
+</html>
