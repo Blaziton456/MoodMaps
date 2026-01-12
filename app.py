@@ -6,12 +6,9 @@ import requests
 import random
 import os
 import base64
-import threading
 from math import radians, cos, sin, asin, sqrt
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-
-from flask_mail import Mail, Message
 
 app = Flask(__name__)
 
@@ -29,7 +26,6 @@ OVERPASS_URLS = [
     "https://overpass.nchc.org.tw/api/interpreter",
 ]
 
-
 # =========================================================
 # ✅ UPLOAD CONFIG
 # =========================================================
@@ -40,22 +36,10 @@ ALLOWED_EXT = {"png", "jpg", "jpeg", "webp"}
 MAX_PFP_SIZE_MB = 4
 
 # =========================================================
-# ✅ EMAIL CONFIG (ENV based for production)
+# ✅ BREVO CONFIG (Render-safe)
 # =========================================================
-app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
-app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", "587"))
-app.config["MAIL_USE_TLS"] = os.environ.get("MAIL_USE_TLS", "1") == "1"
-app.config["MAIL_USE_SSL"] = os.environ.get("MAIL_USE_SSL", "0") == "1"
-
-# ✅ IMPORTANT: DO NOT hardcode these in GitHub
-app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME", "")
-app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD", "")
-app.config["MAIL_DEFAULT_SENDER"] = os.environ.get(
-    "MAIL_DEFAULT_SENDER",
-    app.config["MAIL_USERNAME"]
-)
-
-mail = Mail(app)
+BREVO_API_KEY = (os.environ.get("BREVO_API_KEY") or "").strip()
+BREVO_SENDER = (os.environ.get("BREVO_SENDER") or "").strip()
 
 # =========================================================
 # ✅ DB HELPERS (Better handling)
@@ -219,16 +203,10 @@ def inject_globals():
 
 
 # =========================================================
-# ✅ MAINTENANCE GATE (BLOCK SITE WHEN ON)
+# ✅ MAINTENANCE GATE
 # =========================================================
 @app.before_request
 def maintenance_gate():
-    """
-    When maintenance is ON:
-    - block all routes
-    - allow only login/logout/reset + static
-    - allow admin toggle endpoint
-    """
     try:
         if request.path.startswith("/static/"):
             return None
@@ -326,52 +304,49 @@ def build_reset_email_html(code: str):
 
 
 # =========================================================
-# ✅ EMAIL SENDING (RENDER SAFE FIX)
+# ✅ BREVO EMAIL SENDING (THE REAL FIX)
 # =========================================================
-def _send_reset_email_sync(to_email, code):
-    """
-    ✅ Render-safe synchronous mail sender (no background threads).
-    Also prints debug logs so you can verify in Render logs.
-    """
-    if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
-        print("⚠️ Mail ENV not configured, cannot send email.")
-        print("   MAIL_USERNAME:", app.config.get("MAIL_USERNAME"))
-        print("   MAIL_PASSWORD:", "SET" if app.config.get("MAIL_PASSWORD") else "EMPTY")
+def send_reset_email(to_email: str, code: str) -> bool:
+    if not BREVO_API_KEY or not BREVO_SENDER:
+        print("❌ BREVO env vars missing")
+        print("   BREVO_API_KEY:", "SET" if BREVO_API_KEY else "EMPTY")
+        print("   BREVO_SENDER:", BREVO_SENDER or "EMPTY")
         return False
 
     try:
-        print("📨 Sending reset email via SMTP...")
-        print("   -> to:", to_email)
-        print("   -> server:", app.config.get("MAIL_SERVER"))
-        print("   -> port:", app.config.get("MAIL_PORT"))
-        print("   -> tls:", app.config.get("MAIL_USE_TLS"))
-        print("   -> ssl:", app.config.get("MAIL_USE_SSL"))
-        print("   -> username:", app.config.get("MAIL_USERNAME"))
-        print("   -> default sender:", app.config.get("MAIL_DEFAULT_SENDER"))
+        url = "https://api.brevo.com/v3/smtp/email"
+        html = build_reset_email_html(code)
 
-        msg = Message(
-            subject="MoodMap Password Reset Code",
-            recipients=[to_email]
-        )
-        msg.body = f"Your MoodMap reset code is {code}. Valid for 10 minutes."
-        msg.html = build_reset_email_html(code)
+        payload = {
+            "sender": {
+                "name": "MoodMap",
+                "email": BREVO_SENDER
+            },
+            "to": [{"email": to_email}],
+            "subject": "MoodMap Password Reset Code",
+            "htmlContent": html,
+            "textContent": f"Your MoodMap reset code is {code}. Valid for 10 minutes."
+        }
 
-        mail.send(msg)
+        headers = {
+            "accept": "application/json",
+            "api-key": BREVO_API_KEY,
+            "content-type": "application/json"
+        }
 
-        print("✅ Email sent successfully ✅")
-        return True
+        print("📨 Sending reset email via Brevo API ->", to_email)
+        r = requests.post(url, json=payload, headers=headers, timeout=15)
 
-    except Exception as e:
-        print("❌ Email sending failed:", repr(e))
+        if r.status_code in (200, 201, 202):
+            print("✅ Brevo email sent ✅")
+            return True
+
+        print("❌ Brevo failed:", r.status_code, r.text)
         return False
 
-
-def send_reset_email_async(to_email, code):
-    """
-    ⛔ Disabled async threads for Render (threads can die silently).
-    ✅ Always send synchronously.
-    """
-    return _send_reset_email_sync(to_email, code)
+    except Exception as e:
+        print("❌ Brevo exception:", repr(e))
+        return False
 
 
 # =========================================================
@@ -448,7 +423,7 @@ def delete_profile_pic_file(profile_pic_url: str):
 
 
 # =========================================================
-# ✅ ADMIN CHECK (for maintenance toggle)
+# ✅ ADMIN CHECK
 # =========================================================
 def is_admin(uid):
     try:
@@ -1008,7 +983,7 @@ def api_forgot():
 
     print("\n✅ MoodMap Reset Code:", code, "(valid for 10 minutes)\n")
 
-    ok = send_reset_email_async(email, code)
+    ok = send_reset_email(email, code)
     if not ok:
         return jsonify({"success": False, "message": "Email sending failed. Try again later."})
 
