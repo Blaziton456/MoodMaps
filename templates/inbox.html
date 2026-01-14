@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MoodMap – Inbox</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --accent:#a78bfa;
+    --accent2:#22d3ee;
+    --text:#e5e7eb;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:Inter,system-ui;
+    color:var(--text);
+    background: radial-gradient(circle at 20% 20%, rgba(167,139,250,0.25), transparent 55%),
+                radial-gradient(circle at 80% 80%, rgba(34,211,238,0.22), transparent 55%),
+                linear-gradient(120deg,#020617,#0f172a);
+  }
+
+  .wrap{max-width:1200px;margin:auto;padding:24px 18px 80px;}
+  .topRow{
+    display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .brand{font-weight:1000;font-size:20px;}
+  .btn{
+    padding:11px 14px;border-radius:999px;
+    border:1px solid rgba(255,255,255,0.16);
+    background:rgba(0,0,0,0.26);
+    color:white;text-decoration:none;
+    font-weight:1000;
+    cursor:pointer;
+    transition: transform .15s ease;
+  }
+  .btn:hover{transform:translateY(-2px)}
+  .btn.primary{border:none;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+
+  .grid{
+    display:grid;
+    grid-template-columns: 360px 1fr;
+    gap:14px;
+  }
+  @media(max-width:920px){
+    .grid{grid-template-columns:1fr}
+  }
+
+  .card{
+    border-radius:22px;border:1px solid rgba(255,255,255,0.16);
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 60px 140px rgba(0,0,0,0.55);
+    padding:14px;
+    overflow:hidden;
+  }
+
+  .searchWrap{
+    position:relative;
+    margin-bottom:12px;
+  }
+  .search{
+    width:100%;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.22);
+    color:white;
+    padding:12px 14px 12px 38px;
+    outline:none;
+    font-size:13px;
+  }
+  .searchIcon{
+    position:absolute;
+    left:12px;
+    top:50%;
+    transform:translateY(-50%);
+    opacity:.7;
+  }
+  .searchDrop{
+    position:absolute;
+    left:0;
+    right:0;
+    top:50px;
+    background: rgba(10,12,20,0.95);
+    border:1px solid rgba(255,255,255,0.16);
+    border-radius:18px;
+    overflow:hidden;
+    display:none;
+    z-index:50;
+  }
+  .dropItem{
+    padding:12px 12px;
+    cursor:pointer;
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    align-items:center;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+  }
+  .dropItem:hover{background: rgba(255,255,255,0.06);}
+  .dropLeft{min-width:0}
+  .dropName{font-weight:900;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dropUser{font-size:12px;opacity:.65;margin-top:4px}
+
+  .chatList{display:flex;flex-direction:column;gap:10px;max-height:68vh;overflow:auto;padding-right:4px;}
+  .chatItem{
+    padding:12px;border-radius:18px;
+    border:1px solid rgba(255,255,255,0.14);
+    background:rgba(0,0,0,0.18);
+    cursor:pointer;
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    align-items:center;
+  }
+  .chatItem.active{border-color: rgba(34,211,238,0.35); box-shadow: 0 0 0 3px rgba(34,211,238,0.12);}
+  .chatName{font-weight:1000;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
+  .chatLast{font-size:12px;opacity:.65;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
+  .unreadBadge{
+    min-width:22px;height:22px;border-radius:999px;
+    display:none;
+    align-items:center;justify-content:center;
+    background:#ef4444;
+    font-size:12px;font-weight:1000;
+    padding:0 7px;
+  }
+
+  .msgTop{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    flex-wrap:wrap;
+    border-bottom:1px solid rgba(255,255,255,0.10);
+    padding-bottom:12px;
+    margin-bottom:12px;
+  }
+  .withName{font-weight:1000;font-size:16px}
+  .withUser{opacity:.7;font-size:12px;margin-top:6px}
+  .seenLine{
+    font-size:12px;
+    opacity:.72;
+    margin-top:8px;
+  }
+
+  .msgs{
+    height:62vh;
+    overflow:auto;
+    padding-right:6px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .bubble{
+    max-width:70%;
+    padding:10px 12px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    font-size:13px;
+    line-height:1.5;
+    position:relative;
+  }
+  .bubble.me{
+    margin-left:auto;
+    border:none;
+    background: linear-gradient(135deg, rgba(167,139,250,0.85), rgba(34,211,238,0.75));
+    color:#061018;
+    font-weight:800;
+  }
+  .bubbleMeta{
+    font-size:11px;
+    opacity:.7;
+    margin-top:6px;
+    font-weight:800;
+  }
+  .compose{
+    display:flex;
+    gap:10px;
+    margin-top:12px;
+  }
+  .input{
+    flex:1;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.22);
+    color:white;
+    padding:12px 14px;
+    outline:none;
+  }
+  .sendBtn{
+    padding:12px 16px;
+    border-radius:18px;
+    border:none;
+    cursor:pointer;
+    font-weight:1000;
+    background: linear-gradient(135deg,var(--accent),var(--accent2));
+    color:white;
+  }
+  .sendBtn:disabled{opacity:.65;cursor:not-allowed}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topRow">
+    <div class="brand">MoodMap Inbox 💬</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn" href="/">← Home</a>
+      <a class="btn" href="/logout">Logout</a>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div style="font-weight:1000;margin-bottom:10px;">Chats</div>
+
+      <div class="searchWrap" id="dmSearchWrap">
+        <div class="searchIcon">🔍</div>
+        <input class="search" id="dmSearch" placeholder="Search username & start chat..." autocomplete="off"/>
+        <div class="searchDrop" id="dmDrop"></div>
+      </div>
+
+      <div class="chatList" id="chatList"></div>
+    </div>
+
+    <div class="card">
+      <div class="msgTop">
+        <div>
+          <div class="withName" id="withName">Select a chat</div>
+          <div class="withUser" id="withUser">@</div>
+          <div class="seenLine" id="seenLine"></div>
+        </div>
+      </div>
+
+      <div class="msgs" id="msgs"></div>
+
+      <div class="compose">
+        <input class="input" id="msgInput" placeholder="Type message..." disabled />
+        <button class="sendBtn" id="sendBtn" disabled>Send</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/static/chat.js"></script>
+</body>
+</html>

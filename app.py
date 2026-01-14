@@ -948,6 +948,113 @@ def api_follow_requests_reject():
 
     return jsonify({"success": True})
 
+# =========================================================
+# ✅ FOLLOWERS / FOLLOWING LISTS + STATS + REMOVE
+# =========================================================
+
+@app.route("/api/follow/stats", methods=["GET"])
+def api_follow_stats():
+    uid = current_user()
+    if not uid:
+        return jsonify({"success": False})
+
+    username = (request.args.get("username", "") or "").strip().lower()
+    target = user_by_username(username)
+    if not target:
+        return jsonify({"success": False, "message": "User not found"})
+
+    with get_db() as db:
+        followers = db.execute("""
+            SELECT COUNT(*) as c
+            FROM follows
+            WHERE following_id=? AND status='accepted'
+        """, (target["id"],)).fetchone()["c"]
+
+        following = db.execute("""
+            SELECT COUNT(*) as c
+            FROM follows
+            WHERE follower_id=? AND status='accepted'
+        """, (target["id"],)).fetchone()["c"]
+
+    return jsonify({
+        "success": True,
+        "followers": int(followers),
+        "following": int(following)
+    })
+
+
+@app.route("/api/follow/followers", methods=["GET"])
+def api_follow_list_followers():
+    uid = current_user()
+    if not uid:
+        return jsonify({"success": False, "message": "Login required"})
+
+    username = (request.args.get("username", "") or "").strip().lower()
+    target = user_by_username(username)
+    if not target:
+        return jsonify({"success": False, "message": "User not found"})
+
+    with get_db() as db:
+        rows = db.execute("""
+            SELECT
+                u.username, u.name, u.profile_pic,
+                f.created_at
+            FROM follows f
+            JOIN users u ON u.id = f.follower_id
+            WHERE f.following_id=? AND f.status='accepted'
+            ORDER BY f.created_at DESC
+        """, (target["id"],)).fetchall()
+
+    return jsonify({"success": True, "list": [dict(r) for r in rows]})
+
+
+@app.route("/api/follow/following", methods=["GET"])
+def api_follow_list_following():
+    uid = current_user()
+    if not uid:
+        return jsonify({"success": False, "message": "Login required"})
+
+    username = (request.args.get("username", "") or "").strip().lower()
+    target = user_by_username(username)
+    if not target:
+        return jsonify({"success": False, "message": "User not found"})
+
+    with get_db() as db:
+        rows = db.execute("""
+            SELECT
+                u.username, u.name, u.profile_pic,
+                f.created_at
+            FROM follows f
+            JOIN users u ON u.id = f.following_id
+            WHERE f.follower_id=? AND f.status='accepted'
+            ORDER BY f.created_at DESC
+        """, (target["id"],)).fetchall()
+
+    return jsonify({"success": True, "list": [dict(r) for r in rows]})
+
+
+@app.route("/api/follow/remove_follower", methods=["POST"])
+def api_follow_remove_follower():
+    uid = current_user()
+    if not uid:
+        return jsonify({"success": False, "message": "Login required"})
+
+    username = (request.json.get("username", "") or "").strip().lower()
+    target = user_by_username(username)
+    if not target:
+        return jsonify({"success": False, "message": "User not found"})
+
+    # ✅ only allow removing followers from your own profile
+    # i.e. delete row: follower_id=target, following_id=me
+    with get_db() as db:
+        db.execute("""
+            DELETE FROM follows
+            WHERE follower_id=? AND following_id=? AND status='accepted'
+        """, (target["id"], uid))
+
+    return jsonify({"success": True})
+
+
 
 # =========================================================
 # ✅ FORGOT / RESET

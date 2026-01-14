@@ -68,6 +68,38 @@
     font-size:12px;font-weight:900;
   }
 
+  /* ✅ Followers/Following row */
+  .ffRow{
+    margin-top:12px;
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .ffPill{
+    border:1px solid rgba(255,255,255,0.14);
+    background:rgba(0,0,0,0.22);
+    padding:10px 12px;
+    border-radius:999px;
+    cursor:pointer;
+    user-select:none;
+    transition: transform .15s ease, border-color .15s ease;
+    font-weight:1000;
+    font-size:12px;
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .ffPill:hover{
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.22);
+  }
+  .ffNum{
+    font-weight:1000;
+    font-size:13px;
+  }
+  .ffLabel{opacity:.75;font-weight:900}
+
   .places{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:12px;}
   .place{
     border-radius:18px;border:1px solid rgba(255,255,255,0.14);
@@ -192,6 +224,158 @@
     border:none;
     background:linear-gradient(135deg,var(--accent),var(--accent2));
   }
+
+  /* ===================== FOLLOW LIST MODAL ===================== */
+  #ffBackdrop{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.55);
+    backdrop-filter: blur(12px);
+    z-index:260;
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .18s ease;
+  }
+  #ffBackdrop.active{
+    opacity:1;
+    pointer-events:auto;
+  }
+
+  #ffModal{
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%) scale(.98);
+    width:min(560px,92vw);
+    max-height:min(76vh,680px);
+    overflow:hidden;
+    border-radius:22px;
+    border:1px solid rgba(255,255,255,0.18);
+    background:linear-gradient(180deg, rgba(20,25,40,0.94), rgba(10,12,20,0.82));
+    box-shadow: 0 60px 170px rgba(0,0,0,0.78);
+    z-index:261;
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  #ffModal.active{
+    opacity:1;
+    pointer-events:auto;
+    transform:translate(-50%,-50%) scale(1);
+  }
+
+  .ffTop{
+    padding:14px 14px 10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+  }
+  .ffTitle{
+    font-weight:1000;
+    font-size:14px;
+    letter-spacing: 0.2px;
+  }
+  .ffClose{
+    width:38px;height:38px;border-radius:14px;
+    border:1px solid rgba(255,255,255,0.14);
+    background:rgba(0,0,0,0.22);
+    color:white;
+    cursor:pointer;
+    font-weight:1000;
+  }
+
+  .ffTabs{
+    padding:10px 14px 12px;
+    display:flex;
+    gap:10px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+  }
+  .tabBtn{
+    flex:1;
+    padding:10px 12px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,0.14);
+    background:rgba(0,0,0,0.22);
+    color:white;
+    font-weight:1000;
+    cursor:pointer;
+    transition: transform .15s ease, border-color .15s ease;
+  }
+  .tabBtn:hover{transform: translateY(-1px)}
+  .tabBtn.active{
+    border:none;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+  }
+
+  .ffBody{
+    padding:10px 14px 14px;
+    overflow:auto;
+    max-height:calc(min(76vh,680px) - 120px);
+  }
+
+  .ffItem{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:12px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,0.12);
+    background:rgba(0,0,0,0.22);
+    margin-bottom:10px;
+  }
+  .ffLeft{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    min-width:0;
+  }
+  .ffAvatar{
+    width:46px;height:46px;border-radius:18px;
+    border:1px solid rgba(255,255,255,0.14);
+    overflow:hidden;
+    background:rgba(0,0,0,0.22);
+    display:grid;place-items:center;
+    font-weight:1000;
+  }
+  .ffAvatar img{width:100%;height:100%;object-fit:cover}
+  .ffName{
+    font-weight:1000;
+    font-size:13px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:260px;
+  }
+  .ffUser{
+    opacity:.72;
+    font-size:12px;
+    margin-top:6px;
+  }
+
+  .ffActionBtn{
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.14);
+    background:rgba(0,0,0,0.22);
+    color:white;
+    font-weight:1000;
+    cursor:pointer;
+    transition: transform .15s ease;
+  }
+  .ffActionBtn:hover{transform: translateY(-2px)}
+  .ffActionBtn.danger{
+    border-color: rgba(239,68,68,0.35);
+    background: rgba(239,68,68,0.16);
+  }
+  .ffEmpty{
+    opacity:.7;
+    padding:18px 6px;
+    font-size:13px;
+    line-height:1.6;
+  }
 </style>
 </head>
 
@@ -219,6 +403,24 @@
       <button class="miniBtn" type="button" id="rotateBtn">⟲ Rotate</button>
 
       <button class="miniBtn primary" type="button" id="saveCropBtn" style="margin-left:auto;">✅ Save</button>
+    </div>
+  </div>
+
+  <!-- ✅ Followers/Following modal -->
+  <div id="ffBackdrop"></div>
+  <div id="ffModal">
+    <div class="ffTop">
+      <div class="ffTitle" id="ffTitle">Connections</div>
+      <button class="ffClose" id="ffCloseBtn">✕</button>
+    </div>
+
+    <div class="ffTabs">
+      <button class="tabBtn active" id="tabFollowers">Followers</button>
+      <button class="tabBtn" id="tabFollowing">Following</button>
+    </div>
+
+    <div class="ffBody" id="ffList">
+      <div class="ffEmpty">Loading…</div>
     </div>
   </div>
 
@@ -253,9 +455,22 @@
           {% endif %}
         </div>
 
-        <div>
+        <div style="min-width:0;">
           <div class="name">{{profile_name}}</div>
           <div class="user">@{{profile_username}}</div>
+
+          <!-- ✅ Followers/Following counts -->
+          <div class="ffRow">
+            <div class="ffPill" id="followersPill" title="View followers">
+              <span class="ffNum" id="followersCount">—</span>
+              <span class="ffLabel">Followers</span>
+            </div>
+            <div class="ffPill" id="followingPill" title="View following">
+              <span class="ffNum" id="followingCount">—</span>
+              <span class="ffLabel">Following</span>
+            </div>
+          </div>
+
           <div class="metaRow">
             <span class="badge">Mood: {{current_mood}}</span>
             <span class="badge">{% if is_private %}Private{% else %}Public{% endif %}</span>
@@ -422,6 +637,279 @@ shareBtn.onclick = async ()=>{
     shareBtn.innerText=" Share";
   }
 };
+
+/* ===================== FOLLOWERS/FOLLOWING UI ===================== */
+
+const followersCount = document.getElementById("followersCount");
+const followingCount = document.getElementById("followingCount");
+const followersPill = document.getElementById("followersPill");
+const followingPill = document.getElementById("followingPill");
+
+const ffBackdrop = document.getElementById("ffBackdrop");
+const ffModal = document.getElementById("ffModal");
+const ffCloseBtn = document.getElementById("ffCloseBtn");
+const ffList = document.getElementById("ffList");
+
+const tabFollowers = document.getElementById("tabFollowers");
+const tabFollowing = document.getElementById("tabFollowing");
+
+let activeTab = "followers"; // followers | following
+
+function openFFModal(){
+  ffBackdrop.classList.add("active");
+  ffModal.classList.add("active");
+}
+function closeFFModal(){
+  ffBackdrop.classList.remove("active");
+  ffModal.classList.remove("active");
+}
+ffBackdrop.addEventListener("click", closeFFModal);
+ffCloseBtn.onclick = closeFFModal;
+
+function setTab(t){
+  activeTab = t;
+  tabFollowers.classList.toggle("active", t === "followers");
+  tabFollowing.classList.toggle("active", t === "following");
+}
+
+function escapeHtml(s){
+  return String(s || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function makeAvatarHTML(u){
+  const pfp = (u.profile_pic || "").trim();
+  const letter = (u.name || u.username || "U").slice(0,1).toUpperCase();
+
+  if(pfp){
+    return `<img src="${escapeHtml(pfp)}" alt="pfp"/>`;
+  }
+  return escapeHtml(letter);
+}
+
+async function refreshStats(){
+  try{
+    const r = await fetch(`/api/follow/stats?username=${encodeURIComponent(PROFILE_USERNAME)}`);
+    const d = await r.json();
+    if(d && d.success){
+      followersCount.innerText = d.followers;
+      followingCount.innerText = d.following;
+    }
+  }catch(e){}
+}
+
+async function loadFollowers(){
+  ffList.innerHTML = `<div class="ffEmpty">Loading followers…</div>`;
+  try{
+    const r = await fetch(`/api/follow/followers?username=${encodeURIComponent(PROFILE_USERNAME)}`);
+    const d = await r.json();
+
+    if(!d || !d.success){
+      ffList.innerHTML = `<div class="ffEmpty">Failed to load followers.</div>`;
+      return;
+    }
+
+    const list = Array.isArray(d.list) ? d.list : [];
+
+    if(!list.length){
+      ffList.innerHTML = `<div class="ffEmpty">No followers yet.</div>`;
+      return;
+    }
+
+    ffList.innerHTML = "";
+
+    list.forEach(u=>{
+      const div = document.createElement("div");
+      div.className = "ffItem";
+
+      const canRemove = IS_OWNER; // only owner can remove follower
+      const actionText = canRemove ? "Remove" : "View";
+
+      div.innerHTML = `
+        <div class="ffLeft">
+          <div class="ffAvatar">${makeAvatarHTML(u)}</div>
+          <div style="min-width:0;">
+            <div class="ffName">${escapeHtml(u.name || u.username || "User")}</div>
+            <div class="ffUser">@${escapeHtml(u.username)}</div>
+          </div>
+        </div>
+        <div>
+          ${canRemove
+            ? `<button class="ffActionBtn danger">Remove</button>`
+            : `<button class="ffActionBtn">Open</button>`
+          }
+        </div>
+      `;
+
+      const btn = div.querySelector("button");
+      btn.onclick = async ()=>{
+        if(!canRemove){
+          location.href = "/u/" + u.username;
+          return;
+        }
+
+        const ok = confirm(`Remove @${u.username} from your followers?`);
+        if(!ok) return;
+
+        btn.disabled = true;
+        btn.innerText = "Removing…";
+
+        try{
+          const rr = await fetch("/api/follow/remove_follower",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({username: u.username})
+          });
+          const rd = await rr.json();
+
+          if(rd && rd.success){
+            await refreshStats();
+            await loadFollowers();
+          }else{
+            alert("❌ Failed to remove follower.");
+            btn.disabled = false;
+            btn.innerText = "Remove";
+          }
+        }catch(e){
+          alert("❌ Server error.");
+          btn.disabled = false;
+          btn.innerText = "Remove";
+        }
+      };
+
+      div.onclick = (e)=>{
+        if(e.target.tagName.toLowerCase() === "button") return;
+        location.href = "/u/" + u.username;
+      };
+
+      ffList.appendChild(div);
+    });
+
+  }catch(e){
+    ffList.innerHTML = `<div class="ffEmpty">Error loading followers.</div>`;
+  }
+}
+
+async function loadFollowing(){
+  ffList.innerHTML = `<div class="ffEmpty">Loading following…</div>`;
+  try{
+    const r = await fetch(`/api/follow/following?username=${encodeURIComponent(PROFILE_USERNAME)}`);
+    const d = await r.json();
+
+    if(!d || !d.success){
+      ffList.innerHTML = `<div class="ffEmpty">Failed to load following.</div>`;
+      return;
+    }
+
+    const list = Array.isArray(d.list) ? d.list : [];
+
+    if(!list.length){
+      ffList.innerHTML = `<div class="ffEmpty">Not following anyone yet.</div>`;
+      return;
+    }
+
+    ffList.innerHTML = "";
+
+    list.forEach(u=>{
+      const div = document.createElement("div");
+      div.className = "ffItem";
+
+      const canUnfollow = IS_OWNER; // only owner can unfollow from their profile page
+      div.innerHTML = `
+        <div class="ffLeft">
+          <div class="ffAvatar">${makeAvatarHTML(u)}</div>
+          <div style="min-width:0;">
+            <div class="ffName">${escapeHtml(u.name || u.username || "User")}</div>
+            <div class="ffUser">@${escapeHtml(u.username)}</div>
+          </div>
+        </div>
+        <div>
+          ${canUnfollow
+            ? `<button class="ffActionBtn danger">Unfollow</button>`
+            : `<button class="ffActionBtn">Open</button>`
+          }
+        </div>
+      `;
+
+      const btn = div.querySelector("button");
+      btn.onclick = async ()=>{
+        if(!canUnfollow){
+          location.href = "/u/" + u.username;
+          return;
+        }
+
+        const ok = confirm(`Unfollow @${u.username}?`);
+        if(!ok) return;
+
+        btn.disabled = true;
+        btn.innerText = "Unfollowing…";
+
+        try{
+          const rr = await fetch("/api/follow/unfollow",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({username: u.username})
+          });
+          const rd = await rr.json();
+
+          if(rd && rd.success){
+            await refreshStats();
+            await loadFollowing();
+          }else{
+            alert("❌ Failed to unfollow.");
+            btn.disabled = false;
+            btn.innerText = "Unfollow";
+          }
+        }catch(e){
+          alert("❌ Server error.");
+          btn.disabled = false;
+          btn.innerText = "Unfollow";
+        }
+      };
+
+      div.onclick = (e)=>{
+        if(e.target.tagName.toLowerCase() === "button") return;
+        location.href = "/u/" + u.username;
+      };
+
+      ffList.appendChild(div);
+    });
+
+  }catch(e){
+    ffList.innerHTML = `<div class="ffEmpty">Error loading following.</div>`;
+  }
+}
+
+tabFollowers.onclick = async ()=>{
+  setTab("followers");
+  await loadFollowers();
+};
+
+tabFollowing.onclick = async ()=>{
+  setTab("following");
+  await loadFollowing();
+};
+
+followersPill.onclick = async ()=>{
+  setTab("followers");
+  openFFModal();
+  await loadFollowers();
+};
+
+followingPill.onclick = async ()=>{
+  setTab("following");
+  openFFModal();
+  await loadFollowing();
+};
+
+(async function initFF(){
+  await refreshStats();
+})();
+
 
 /* ✅ cropper */
 let cropper=null;
