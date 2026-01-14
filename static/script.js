@@ -881,11 +881,58 @@ if (reqBtn) {
   };
 }
 
-/* poll requests */
-(async function initRequests() {
-  await fetchRequests();
-  followReqPollTimer = setInterval(fetchRequests, 12000);
+/* poll requests (Render-safe + no spam) */
+function canPollRequests() {
+  // only poll when page is visible (prevents background spam)
+  if (document.visibilityState !== "visible") return false;
+
+  // if button doesn't exist on this page, don't poll
+  if (!reqBtn || !reqCount) return false;
+
+  return true;
+}
+
+async function pollRequestsSafe() {
+  try {
+    if (!canPollRequests()) return;
+    await fetchRequests();
+  } catch { }
+}
+
+function startFollowRequestPolling() {
+  stopFollowRequestPolling();
+
+  // ✅ immediate 1st fetch
+  pollRequestsSafe();
+
+  // ✅ reduce spam (from 12s -> 60s)
+  followReqPollTimer = setInterval(pollRequestsSafe, 60000);
+}
+
+function stopFollowRequestPolling() {
+  if (followReqPollTimer) {
+    clearInterval(followReqPollTimer);
+    followReqPollTimer = null;
+  }
+}
+
+/* init requests */
+(function initRequests() {
+  startFollowRequestPolling();
+
+  // ✅ stop polling when tab hidden; restart when visible
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      startFollowRequestPolling();
+    } else {
+      stopFollowRequestPolling();
+    }
+  });
+
+  // ✅ stop polling on unload
+  window.addEventListener("beforeunload", stopFollowRequestPolling);
 })();
+
 
 
 /* ===================== USER SEARCH ===================== */
