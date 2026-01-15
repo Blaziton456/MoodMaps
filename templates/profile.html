@@ -309,10 +309,30 @@
     background:linear-gradient(135deg,var(--accent),var(--accent2));
   }
 
+  /* ✅ NEW: Search bar inside modal */
+  .ffSearchWrap{
+    padding:10px 14px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+  }
+  .ffSearch{
+    width:100%;
+    padding:12px 14px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,0.14);
+    background:rgba(0,0,0,0.22);
+    color:white;
+    outline:none;
+    font-size:13px;
+  }
+  .ffSearch:focus{
+    border-color: rgba(255,255,255,0.22);
+    box-shadow: 0 25px 80px rgba(167,139,250,0.12);
+  }
+
   .ffBody{
     padding:10px 14px 14px;
     overflow:auto;
-    max-height:calc(min(76vh,680px) - 120px);
+    max-height:calc(min(76vh,680px) - 176px);
   }
 
   .ffItem{
@@ -353,6 +373,34 @@
     opacity:.72;
     font-size:12px;
     margin-top:6px;
+  }
+
+  /* ✅ NEW: Relationship labels */
+  .ffLabels{
+    margin-top:8px;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .relBadge{
+    font-size:11px;
+    padding:7px 10px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.20);
+    font-weight:1000;
+    opacity:.95;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+  }
+  .relBadge.mutual{
+    border-color: rgba(34,211,238,0.35);
+    background: rgba(34,211,238,0.16);
+  }
+  .relBadge.followsyou{
+    border-color: rgba(167,139,250,0.35);
+    background: rgba(167,139,250,0.16);
   }
 
   .ffActionBtn{
@@ -417,6 +465,11 @@
     <div class="ffTabs">
       <button class="tabBtn active" id="tabFollowers">Followers</button>
       <button class="tabBtn" id="tabFollowing">Following</button>
+    </div>
+
+    <!-- ✅ NEW: search bar -->
+    <div class="ffSearchWrap">
+      <input id="ffSearch" class="ffSearch" placeholder="Search users in this list…" autocomplete="off" />
     </div>
 
     <div class="ffBody" id="ffList">
@@ -653,11 +706,20 @@ const ffList = document.getElementById("ffList");
 const tabFollowers = document.getElementById("tabFollowers");
 const tabFollowing = document.getElementById("tabFollowing");
 
+const ffSearch = document.getElementById("ffSearch");
+
 let activeTab = "followers"; // followers | following
+
+let cachedFollowers = [];
+let cachedFollowing = [];
 
 function openFFModal(){
   ffBackdrop.classList.add("active");
   ffModal.classList.add("active");
+  if(ffSearch){
+    ffSearch.value = "";
+    setTimeout(()=>ffSearch.focus(), 80);
+  }
 }
 function closeFFModal(){
   ffBackdrop.classList.remove("active");
@@ -670,6 +732,7 @@ function setTab(t){
   activeTab = t;
   tabFollowers.classList.toggle("active", t === "followers");
   tabFollowing.classList.toggle("active", t === "following");
+  if(ffSearch) ffSearch.value = "";
 }
 
 function escapeHtml(s){
@@ -691,6 +754,36 @@ function makeAvatarHTML(u){
   return escapeHtml(letter);
 }
 
+function buildRelBadges(u){
+  const viewerFollows = Number(u.viewer_follows_user || 0) === 1;
+  const userFollowsViewer = Number(u.user_follows_viewer || 0) === 1;
+
+  let html = "";
+
+  if(viewerFollows && userFollowsViewer){
+    html += `<span class="relBadge mutual">🔥 Mutuals</span>`;
+  }
+  if(userFollowsViewer && !viewerFollows){
+    html += `<span class="relBadge followsyou">✨ Follows you</span>`;
+  }
+  if(viewerFollows && !userFollowsViewer){
+    html += `<span class="relBadge">Following</span>`;
+  }
+
+  return html ? `<div class="ffLabels">${html}</div>` : "";
+}
+
+function applySearchFilter(list){
+  const q = (ffSearch && ffSearch.value ? ffSearch.value : "").trim().toLowerCase();
+  if(!q) return list;
+
+  return list.filter(u=>{
+    const a = (u.username || "").toLowerCase();
+    const b = (u.name || "").toLowerCase();
+    return a.includes(q) || b.includes(q);
+  });
+}
+
 async function refreshStats(){
   try{
     const r = await fetch(`/api/follow/stats?username=${encodeURIComponent(PROFILE_USERNAME)}`);
@@ -702,53 +795,52 @@ async function refreshStats(){
   }catch(e){}
 }
 
-async function loadFollowers(){
-  ffList.innerHTML = `<div class="ffEmpty">Loading followers…</div>`;
-  try{
-    const r = await fetch(`/api/follow/followers?username=${encodeURIComponent(PROFILE_USERNAME)}`);
-    const d = await r.json();
+function renderFFList(list, mode){
+  const filtered = applySearchFilter(list);
 
-    if(!d || !d.success){
-      ffList.innerHTML = `<div class="ffEmpty">Failed to load followers.</div>`;
-      return;
-    }
+  if(!filtered.length){
+    ffList.innerHTML = `<div class="ffEmpty">${mode === "followers" ? "No followers found." : "No following found."}</div>`;
+    return;
+  }
 
-    const list = Array.isArray(d.list) ? d.list : [];
+  ffList.innerHTML = "";
 
-    if(!list.length){
-      ffList.innerHTML = `<div class="ffEmpty">No followers yet.</div>`;
-      return;
-    }
+  filtered.forEach(u=>{
+    const div = document.createElement("div");
+    div.className = "ffItem";
 
-    ffList.innerHTML = "";
+    const canRemove = IS_OWNER && mode === "followers";
+    const canUnfollow = IS_OWNER && mode === "following";
 
-    list.forEach(u=>{
-      const div = document.createElement("div");
-      div.className = "ffItem";
+    let actionHTML = `<button class="ffActionBtn">Open</button>`;
+    if(canRemove) actionHTML = `<button class="ffActionBtn danger">Remove</button>`;
+    if(canUnfollow) actionHTML = `<button class="ffActionBtn danger">Unfollow</button>`;
 
-      const canRemove = IS_OWNER; // only owner can remove follower
-      const actionText = canRemove ? "Remove" : "View";
-
-      div.innerHTML = `
-        <div class="ffLeft">
-          <div class="ffAvatar">${makeAvatarHTML(u)}</div>
-          <div style="min-width:0;">
-            <div class="ffName">${escapeHtml(u.name || u.username || "User")}</div>
-            <div class="ffUser">@${escapeHtml(u.username)}</div>
-          </div>
+    div.innerHTML = `
+      <div class="ffLeft">
+        <div class="ffAvatar">${makeAvatarHTML(u)}</div>
+        <div style="min-width:0;">
+          <div class="ffName">${escapeHtml(u.name || u.username || "User")}</div>
+          <div class="ffUser">@${escapeHtml(u.username)}</div>
+          ${buildRelBadges(u)}
         </div>
-        <div>
-          ${canRemove
-            ? `<button class="ffActionBtn danger">Remove</button>`
-            : `<button class="ffActionBtn">Open</button>`
-          }
-        </div>
-      `;
+      </div>
+      <div>
+        ${actionHTML}
+      </div>
+    `;
 
-      const btn = div.querySelector("button");
-      btn.onclick = async ()=>{
+    const btn = div.querySelector("button");
+
+    btn.onclick = async ()=>{
+      if(!IS_OWNER){
+        location.href="/u/" + u.username;
+        return;
+      }
+
+      if(mode === "followers"){
         if(!canRemove){
-          location.href = "/u/" + u.username;
+          location.href="/u/" + u.username;
           return;
         }
 
@@ -768,77 +860,23 @@ async function loadFollowers(){
 
           if(rd && rd.success){
             await refreshStats();
-            await loadFollowers();
+            await loadFollowers(true);
           }else{
             alert("❌ Failed to remove follower.");
             btn.disabled = false;
             btn.innerText = "Remove";
           }
-        }catch(e){
+        }catch{
           alert("❌ Server error.");
           btn.disabled = false;
           btn.innerText = "Remove";
         }
-      };
+        return;
+      }
 
-      div.onclick = (e)=>{
-        if(e.target.tagName.toLowerCase() === "button") return;
-        location.href = "/u/" + u.username;
-      };
-
-      ffList.appendChild(div);
-    });
-
-  }catch(e){
-    ffList.innerHTML = `<div class="ffEmpty">Error loading followers.</div>`;
-  }
-}
-
-async function loadFollowing(){
-  ffList.innerHTML = `<div class="ffEmpty">Loading following…</div>`;
-  try{
-    const r = await fetch(`/api/follow/following?username=${encodeURIComponent(PROFILE_USERNAME)}`);
-    const d = await r.json();
-
-    if(!d || !d.success){
-      ffList.innerHTML = `<div class="ffEmpty">Failed to load following.</div>`;
-      return;
-    }
-
-    const list = Array.isArray(d.list) ? d.list : [];
-
-    if(!list.length){
-      ffList.innerHTML = `<div class="ffEmpty">Not following anyone yet.</div>`;
-      return;
-    }
-
-    ffList.innerHTML = "";
-
-    list.forEach(u=>{
-      const div = document.createElement("div");
-      div.className = "ffItem";
-
-      const canUnfollow = IS_OWNER; // only owner can unfollow from their profile page
-      div.innerHTML = `
-        <div class="ffLeft">
-          <div class="ffAvatar">${makeAvatarHTML(u)}</div>
-          <div style="min-width:0;">
-            <div class="ffName">${escapeHtml(u.name || u.username || "User")}</div>
-            <div class="ffUser">@${escapeHtml(u.username)}</div>
-          </div>
-        </div>
-        <div>
-          ${canUnfollow
-            ? `<button class="ffActionBtn danger">Unfollow</button>`
-            : `<button class="ffActionBtn">Open</button>`
-          }
-        </div>
-      `;
-
-      const btn = div.querySelector("button");
-      btn.onclick = async ()=>{
+      if(mode === "following"){
         if(!canUnfollow){
-          location.href = "/u/" + u.username;
+          location.href="/u/" + u.username;
           return;
         }
 
@@ -858,26 +896,74 @@ async function loadFollowing(){
 
           if(rd && rd.success){
             await refreshStats();
-            await loadFollowing();
+            await loadFollowing(true);
           }else{
             alert("❌ Failed to unfollow.");
             btn.disabled = false;
             btn.innerText = "Unfollow";
           }
-        }catch(e){
+        }catch{
           alert("❌ Server error.");
           btn.disabled = false;
           btn.innerText = "Unfollow";
         }
-      };
+        return;
+      }
+    };
 
-      div.onclick = (e)=>{
-        if(e.target.tagName.toLowerCase() === "button") return;
-        location.href = "/u/" + u.username;
-      };
+    div.onclick = (e)=>{
+      if(e.target.tagName.toLowerCase() === "button") return;
+      location.href="/u/" + u.username;
+    };
 
-      ffList.appendChild(div);
-    });
+    ffList.appendChild(div);
+  });
+}
+
+async function loadFollowers(silent=false){
+  if(!silent) ffList.innerHTML = `<div class="ffEmpty">Loading followers…</div>`;
+  try{
+    const r = await fetch(`/api/follow/followers?username=${encodeURIComponent(PROFILE_USERNAME)}`);
+    const d = await r.json();
+
+    if(!d || !d.success){
+      ffList.innerHTML = `<div class="ffEmpty">Failed to load followers.</div>`;
+      return;
+    }
+
+    cachedFollowers = Array.isArray(d.list) ? d.list : [];
+
+    if(!cachedFollowers.length){
+      ffList.innerHTML = `<div class="ffEmpty">No followers yet.</div>`;
+      return;
+    }
+
+    renderFFList(cachedFollowers, "followers");
+
+  }catch(e){
+    ffList.innerHTML = `<div class="ffEmpty">Error loading followers.</div>`;
+  }
+}
+
+async function loadFollowing(silent=false){
+  if(!silent) ffList.innerHTML = `<div class="ffEmpty">Loading following…</div>`;
+  try{
+    const r = await fetch(`/api/follow/following?username=${encodeURIComponent(PROFILE_USERNAME)}`);
+    const d = await r.json();
+
+    if(!d || !d.success){
+      ffList.innerHTML = `<div class="ffEmpty">Failed to load following.</div>`;
+      return;
+    }
+
+    cachedFollowing = Array.isArray(d.list) ? d.list : [];
+
+    if(!cachedFollowing.length){
+      ffList.innerHTML = `<div class="ffEmpty">Not following anyone yet.</div>`;
+      return;
+    }
+
+    renderFFList(cachedFollowing, "following");
 
   }catch(e){
     ffList.innerHTML = `<div class="ffEmpty">Error loading following.</div>`;
@@ -905,6 +991,14 @@ followingPill.onclick = async ()=>{
   openFFModal();
   await loadFollowing();
 };
+
+/* ✅ NEW: search live filter */
+if(ffSearch){
+  ffSearch.addEventListener("input", ()=>{
+    if(activeTab === "followers") renderFFList(cachedFollowers, "followers");
+    else renderFFList(cachedFollowing, "following");
+  });
+}
 
 (async function initFF(){
   await refreshStats();

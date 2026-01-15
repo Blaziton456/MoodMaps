@@ -985,8 +985,8 @@ def api_follow_stats():
 
 @app.route("/api/follow/followers", methods=["GET"])
 def api_follow_list_followers():
-    uid = current_user()
-    if not uid:
+    viewer_id = current_user()
+    if not viewer_id:
         return jsonify({"success": False, "message": "Login required"})
 
     username = (request.args.get("username", "") or "").strip().lower()
@@ -994,24 +994,48 @@ def api_follow_list_followers():
     if not target:
         return jsonify({"success": False, "message": "User not found"})
 
+    # target followers: follower_id -> target_id
+    # We also compute:
+    # - viewer_follows_user : viewer_id -> follower_id
+    # - user_follows_viewer : follower_id -> viewer_id
     with get_db() as db:
         rows = db.execute("""
             SELECT
                 u.username, u.name, u.profile_pic,
-                f.created_at
+                f.created_at,
+                CASE WHEN vf.id IS NULL THEN 0 ELSE 1 END AS viewer_follows_user,
+                CASE WHEN uv.id IS NULL THEN 0 ELSE 1 END AS user_follows_viewer
             FROM follows f
             JOIN users u ON u.id = f.follower_id
+
+            LEFT JOIN follows vf
+              ON vf.follower_id = ? AND vf.following_id = u.id AND vf.status='accepted'
+
+            LEFT JOIN follows uv
+              ON uv.follower_id = u.id AND uv.following_id = ? AND uv.status='accepted'
+
             WHERE f.following_id=? AND f.status='accepted'
             ORDER BY f.created_at DESC
-        """, (target["id"],)).fetchall()
+        """, (viewer_id, viewer_id, target["id"])).fetchall()
 
-    return jsonify({"success": True, "list": [dict(r) for r in rows]})
+    out = []
+    for r in rows:
+        out.append({
+            "username": r["username"],
+            "name": r["name"],
+            "profile_pic": r["profile_pic"] or "",
+            "created_at": r["created_at"],
+            "viewer_follows_user": int(r["viewer_follows_user"] or 0),
+            "user_follows_viewer": int(r["user_follows_viewer"] or 0),
+        })
+
+    return jsonify({"success": True, "list": out})
 
 
 @app.route("/api/follow/following", methods=["GET"])
 def api_follow_list_following():
-    uid = current_user()
-    if not uid:
+    viewer_id = current_user()
+    if not viewer_id:
         return jsonify({"success": False, "message": "Login required"})
 
     username = (request.args.get("username", "") or "").strip().lower()
@@ -1019,18 +1043,42 @@ def api_follow_list_following():
     if not target:
         return jsonify({"success": False, "message": "User not found"})
 
+    # target is following: target_id -> following_id
+    # We also compute:
+    # - viewer_follows_user : viewer_id -> following_user
+    # - user_follows_viewer : following_user -> viewer_id
     with get_db() as db:
         rows = db.execute("""
             SELECT
                 u.username, u.name, u.profile_pic,
-                f.created_at
+                f.created_at,
+                CASE WHEN vf.id IS NULL THEN 0 ELSE 1 END AS viewer_follows_user,
+                CASE WHEN uv.id IS NULL THEN 0 ELSE 1 END AS user_follows_viewer
             FROM follows f
             JOIN users u ON u.id = f.following_id
+
+            LEFT JOIN follows vf
+              ON vf.follower_id = ? AND vf.following_id = u.id AND vf.status='accepted'
+
+            LEFT JOIN follows uv
+              ON uv.follower_id = u.id AND uv.following_id = ? AND uv.status='accepted'
+
             WHERE f.follower_id=? AND f.status='accepted'
             ORDER BY f.created_at DESC
-        """, (target["id"],)).fetchall()
+        """, (viewer_id, viewer_id, target["id"])).fetchall()
 
-    return jsonify({"success": True, "list": [dict(r) for r in rows]})
+    out = []
+    for r in rows:
+        out.append({
+            "username": r["username"],
+            "name": r["name"],
+            "profile_pic": r["profile_pic"] or "",
+            "created_at": r["created_at"],
+            "viewer_follows_user": int(r["viewer_follows_user"] or 0),
+            "user_follows_viewer": int(r["user_follows_viewer"] or 0),
+        })
+
+    return jsonify({"success": True, "list": out})
 
 
 @app.route("/api/follow/remove_follower", methods=["POST"])
