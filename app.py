@@ -994,10 +994,6 @@ def api_follow_list_followers():
     if not target:
         return jsonify({"success": False, "message": "User not found"})
 
-    # target followers: follower_id -> target_id
-    # We also compute:
-    # - viewer_follows_user : viewer_id -> follower_id
-    # - user_follows_viewer : follower_id -> viewer_id
     with get_db() as db:
         rows = db.execute("""
             SELECT
@@ -1043,10 +1039,6 @@ def api_follow_list_following():
     if not target:
         return jsonify({"success": False, "message": "User not found"})
 
-    # target is following: target_id -> following_id
-    # We also compute:
-    # - viewer_follows_user : viewer_id -> following_user
-    # - user_follows_viewer : following_user -> viewer_id
     with get_db() as db:
         rows = db.execute("""
             SELECT
@@ -1092,8 +1084,6 @@ def api_follow_remove_follower():
     if not target:
         return jsonify({"success": False, "message": "User not found"})
 
-    # ✅ only allow removing followers from your own profile
-    # i.e. delete row: follower_id=target, following_id=me
     with get_db() as db:
         db.execute("""
             DELETE FROM follows
@@ -1124,7 +1114,6 @@ def api_forgot():
     with get_db() as db:
         user = db.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
 
-    # ✅ ALWAYS return success (avoid leaking user existence)
     if not user:
         return jsonify({"success": True, "sent": True})
 
@@ -1253,6 +1242,7 @@ def haversine(lat1, lon1, lat2, lon2):
     return 6371 * c
 
 
+# ✅ keep mood names same (as requested)
 MOOD_TAGS = {
     "work": ["cafe"],
     "date": ["restaurant"],
@@ -1261,18 +1251,193 @@ MOOD_TAGS = {
 }
 
 
-def fetch_places(tags, lat, lon, radius=5000):
+def _norm(s: str) -> str:
+    return (s or "").strip().lower()
+
+
+def _has_any(text: str, keywords):
+    t = _norm(text)
+    for k in keywords:
+        if k in t:
+            return True
+    return False
+
+
+def _place_score(mood: str, tags: dict) -> int:
+    """
+    Higher score = more preferred in final ranking.
+    """
+    name = _norm(tags.get("name", ""))
+    amenity = _norm(tags.get("amenity", ""))
+    brand = _norm(tags.get("brand", ""))
+    cuisine = _norm(tags.get("cuisine", ""))
+    internet = _norm(tags.get("internet_access", ""))
+    outdoor = _norm(tags.get("outdoor_seating", ""))
+    wheelchair = _norm(tags.get("wheelchair", ""))
+    opening_hours = _norm(tags.get("opening_hours", ""))
+    phone = _norm(tags.get("phone", tags.get("contact:phone", "")))
+    website = _norm(tags.get("website", tags.get("contact:website", "")))
+
+    score = 0
+
+    # ✅ General quality scoring (more real places first)
+    if name:
+        score += 6
+    if opening_hours:
+        score += 2
+    if phone:
+        score += 1
+    if website:
+        score += 1
+
+    if mood == "work":
+        # We cannot reliably detect coworking without dedicated tags,
+        # but some amenities / names strongly indicate it.
+        cowork_keywords = ["cowork", "co-work", "co work", "workspace", "workhub", "incubator"]
+        work_cafe_keywords = [
+            "starbucks", "ccd", "cafe coffee day",
+            "third wave", "thirdwave", "coffee",
+            "book", "library", "reading", "study",
+            "irani", "iranii"
+        ]
+
+        if internet in ["yes", "wlan"]:
+            score += 8
+
+        if _has_any(name, cowork_keywords):
+            score += 18
+
+        if _has_any(name, work_cafe_keywords) or _has_any(brand, work_cafe_keywords):
+            score += 10
+
+        # push junk down
+        if amenity == "fast_food":
+            score -= 12
+
+    elif mood == "date":
+        # 💖 aesthetic + less crowded-ish approximation
+        date_name_keywords = ["cafe", "bistro", "lounge", "rooftop", "terrace", "garden", "coffee"]
+        party_keywords = ["bar", "pub", "club", "dance", "hookah", "sheesha"]
+
+        if amenity in ["cafe", "restaurant"]:
+            score += 4
+
+        if outdoor == "yes":
+            score += 10
+
+        if internet in ["yes", "wlan"]:
+            score += 6
+
+        if wheelchair == "yes":
+            score += 4
+
+        if _has_any(name, date_name_keywords):
+            score += 8
+
+        # avoid very noisy party vibe
+        if _has_any(name, party_keywords):
+            score -= 14
+
+        # slight penalty for pure fast food type names
+        if amenity == "fast_food":
+            score -= 10
+
+    elif mood == "quick_bite":
+        # keep fast_food but improve "real fast food" results
+        if amenity == "fast_food":
+            score += 12
+        else:
+            score -= 15
+
+        # Prefer known chains + tagged properly
+        chain_keywords = ["mcdonald", "burger king", "kfc", "subway", "domino", "pizza hut", "starbucks"]
+        if _has_any(name, chain_keywords) or _has_any(brand, chain_keywords):
+            score += 5
+
+        # quality boost
+        if opening_hours:
+            score += 2
+        if phone or website:
+            score += 1
+
+    elif mood == "budget":
+        # pocket friendly local food scoring
+        budget_positive = [
+            "misal", "vada pav", "wada pav", "poha", "upma",
+            "chai", "tea", "tapri",
+            "momos", "roll", "frankie", "sandwich",
+            "chinese", "noodles", "fried rice",
+            "biryani", "thali", "bhojanalay", "mess", "canteen",
+            "snacks", "hotel"
+        ]
+
+        luxury_negative = [
+            "barbeque nation", "bbq nation",
+            "fine dine", "fine-dine", "luxury",
+            "premium", "5 star", "five star",
+            "lounge", "rooftop", "sky", "buffet"
+        ]
+
+        if _has_any(name, budget_positive) or _has_any(cuisine, budget_positive):
+            score += 16
+
+        if _has_any(name, luxury_negative):
+            score -= 18
+
+        # prefer non-empty named places
+        if not name:
+            score -= 6
+
+        # fast_food not always budget (can be pricey), restaurant not always cheap,
+        # so we score based on keywords more than amenity.
+        if amenity in ["fast_food", "restaurant"]:
+            score += 1
+
+    return score
+
+
+def build_overpass_query(mood: str, tags: list, lat: float, lon: float, radius: int):
+    """
+    Builds mood-aware Overpass query.
+    Still uses amenity tags mapping, but expands query using additional OSM tags.
+    """
     blocks = []
+
+    # Base amenity tags (keep as requested)
     for tag in tags:
         blocks.append(f'node["amenity"="{tag}"](around:{radius},{lat},{lon});')
+        blocks.append(f'way["amenity"="{tag}"](around:{radius},{lat},{lon});')
+        blocks.append(f'relation["amenity"="{tag}"](around:{radius},{lat},{lon});')
+
+    # Work mood expansion: include coworking / workspace style tags if present
+    if mood == "work":
+        blocks.append(f'node["amenity"="coworking_space"](around:{radius},{lat},{lon});')
+        blocks.append(f'way["amenity"="coworking_space"](around:{radius},{lat},{lon});')
+        blocks.append(f'relation["amenity"="coworking_space"](around:{radius},{lat},{lon});')
+
+        blocks.append(f'node["office"="coworking"](around:{radius},{lat},{lon});')
+        blocks.append(f'way["office"="coworking"](around:{radius},{lat},{lon});')
+        blocks.append(f'relation["office"="coworking"](around:{radius},{lat},{lon});')
+
+    # Date mood expansion: include cafes too (aesthetic date cafes)
+    if mood == "date":
+        blocks.append(f'node["amenity"="cafe"](around:{radius},{lat},{lon});')
+        blocks.append(f'way["amenity"="cafe"](around:{radius},{lat},{lon});')
+        blocks.append(f'relation["amenity"="cafe"](around:{radius},{lat},{lon});')
 
     query = f"""
-    [out:json][timeout:15];
+    [out:json][timeout:18];
     (
       {''.join(blocks)}
     );
-    out 30;
+    out center 80;
     """
+
+    return query
+
+
+def fetch_places(mood, tags, lat, lon, radius=5000):
+    query = build_overpass_query(mood, tags, lat, lon, radius)
 
     headers = {
         "User-Agent": "MoodMap/1.0 (contact: moodmap)",
@@ -1282,7 +1447,7 @@ def fetch_places(tags, lat, lon, radius=5000):
 
     for url in OVERPASS_URLS:
         try:
-            res = requests.post(url, data=query, timeout=15, headers=headers)
+            res = requests.post(url, data=query, timeout=18, headers=headers)
             txt = (res.text or "").strip()
 
             if not txt or "html" in txt.lower():
@@ -1313,30 +1478,41 @@ def recommend():
     if not user_lat or not user_lon:
         return jsonify([])
 
+    if mood not in ["work", "date", "quick_bite", "budget"]:
+        return jsonify([])
+
     tags = MOOD_TAGS.get(mood, [])
     if not tags:
         return jsonify([])
 
-    raw = fetch_places(tags, user_lat, user_lon, 5000)
+    raw = fetch_places(mood, tags, user_lat, user_lon, 5000)
 
     if not raw:
         time.sleep(0.7)
-        raw = fetch_places(tags, user_lat, user_lon, 5000)
+        raw = fetch_places(mood, tags, user_lat, user_lon, 5000)
 
     places = []
     for i, p in enumerate(raw):
-        t = p.get("tags", {})
+        t = p.get("tags", {}) or {}
+
+        # Support node + way + relation
         lat = p.get("lat")
         lon = p.get("lon")
+        if (lat is None or lon is None) and "center" in p:
+            lat = p["center"].get("lat")
+            lon = p["center"].get("lon")
+
         if not lat or not lon:
             continue
 
         distance = round(haversine(user_lat, user_lon, lat, lon), 2)
-        category = t.get("amenity") or t.get("leisure") or "place"
+        category = t.get("amenity") or t.get("leisure") or t.get("office") or "place"
         name = t.get("name", category.title())
 
+        score = _place_score(mood, t)
+
         places.append({
-            "place_id": f"osm_{p.get('id', i)}",
+            "place_id": f"osm_{p.get('type','node')}_{p.get('id', i)}",
             "name": name,
             "category": category,
             "distance": distance,
@@ -1345,9 +1521,19 @@ def recommend():
             "opening_hours": t.get("opening_hours", None),
             "phone": t.get("phone", t.get("contact:phone", None)),
             "website": t.get("website", t.get("contact:website", None)),
+            "_score": score
         })
 
-    places.sort(key=lambda x: x["distance"])
+    # ✅ NEW SORT:
+    # 1) highest score (best matching vibe)
+    # 2) nearest distance
+    places.sort(key=lambda x: (-int(x.get("_score", 0)), float(x.get("distance", 999999))))
+
+    # remove internal score before sending to frontend
+    for pl in places:
+        if "_score" in pl:
+            del pl["_score"]
+
     return jsonify(places[:30])
 
 

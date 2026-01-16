@@ -260,26 +260,112 @@ function reachTimes(distanceKm) {
   return { scooterMin, walkMin };
 }
 
-/* AI explain */
+
+/* =========================================================
+   ✅ NEW: Mood explain helper (matches backend logic)
+   ========================================================= */
+
+function txt(s) {
+  return String(s || "").toLowerCase().trim();
+}
+
+function hasAny(str, arr) {
+  const s = txt(str);
+  return arr.some(k => s.includes(k));
+}
+
+function classifyVibeFromName(name) {
+  const n = txt(name);
+
+  const workBrands = ["starbucks", "ccd", "cafe coffee day", "third wave", "thirdwave", "coffee", "book", "library", "study", "irani"];
+  const dateWords = ["bistro", "lounge", "rooftop", "terrace", "garden", "cafe", "coffee"];
+  const budgetWords = ["misal", "vada pav", "wada pav", "poha", "upma", "chai", "tea", "tapri", "momos", "roll", "frankie", "sandwich", "chinese", "noodles", "fried rice", "biryani", "thali", "bhojanalay", "mess", "canteen", "snacks", "hotel"];
+
+  if (hasAny(n, workBrands)) return "work";
+  if (hasAny(n, dateWords)) return "date";
+  if (hasAny(n, budgetWords)) return "budget";
+  return "neutral";
+}
+
+/* AI explain (UPGRADED) */
 function explainWhy(mood, place) {
   const cat = (place.category || "place").replaceAll("_", " ");
   const d = Number(place.distance);
   const nearWord = d < 1 ? "super close" : d < 2.5 ? "nearby" : "worth the short ride";
 
-  if (mood === "date") {
-    return `Perfect for <b>date</b> mood: cozy vibes + ${nearWord} + <b>${cat}</b> tag.`;
-  }
+  const name = txt(place.name);
+  const vibe = classifyVibeFromName(place.name);
+
+  // IMPORTANT:
+  // Overpass does not give all vibe tags to frontend reliably,
+  // so we infer mostly from category + name keywords.
+
   if (mood === "work") {
-    return `Great for <b>work</b>: calm spot + ${nearWord} + ${cat} suitable for sitting.`;
+    const reasons = [];
+
+    // keyword vibe
+    if (vibe === "work") reasons.push("work-friendly vibe");
+
+    if (hasAny(name, ["cowork", "co-work", "workspace", "workhub", "incubator"])) {
+      reasons.push("coworking-style place");
+    }
+
+    if (hasAny(name, ["starbucks", "third wave", "thirdwave", "ccd", "cafe coffee day"])) {
+      reasons.push("reliable coffee spot");
+    }
+
+    if (hasAny(name, ["book", "library", "study", "reading"])) {
+      reasons.push("quiet study energy");
+    }
+
+    if (!reasons.length) reasons.push("calm seating + laptop-friendly vibes");
+
+    return `Great for <b>work</b>: ${reasons.slice(0, 2).join(" + ")} + ${nearWord} + <b>${cat}</b>.`;
   }
+
+  if (mood === "date") {
+    const reasons = [];
+
+    if (vibe === "date") reasons.push("aesthetic cafe vibes");
+
+    if (hasAny(name, ["rooftop", "terrace", "garden", "bistro", "lounge"])) {
+      reasons.push("cute ambience");
+    }
+
+    // crowd approximation: push calmer words
+    if (hasAny(name, ["coffee", "cafe", "bistro"])) {
+      reasons.push("usually less chaotic");
+    }
+
+    if (!reasons.length) reasons.push("cozy place with good vibe");
+
+    return `Perfect for <b>date</b>: ${reasons.slice(0, 2).join(" + ")} + ${nearWord} + <b>${cat}</b>.`;
+  }
+
   if (mood === "quick_bite") {
-    return `Best for <b>quick bite</b>: fast option + ${nearWord} + easy match (${cat}).`;
+    const reasons = [];
+
+    if (cat.includes("fast")) reasons.push("fast food category");
+    if (hasAny(name, ["burger", "pizza", "fries", "wrap", "roll", "shawarma", "sub"])) reasons.push("quick menu");
+    if (!reasons.length) reasons.push("quick service + easy food");
+
+    return `Best for <b>quick bite</b>: ${reasons.slice(0, 2).join(" + ")} + ${nearWord} + <b>${cat}</b>.`;
   }
+
   if (mood === "budget") {
-    return `Good for <b>budget</b>: low-effort visit + ${nearWord} + popular ${cat}.`;
+    const reasons = [];
+
+    if (vibe === "budget") reasons.push("pocket-friendly local food");
+    if (hasAny(name, ["misal", "vada pav", "wada pav", "poha", "chai", "tapri"])) reasons.push("cheap snacks energy");
+    if (hasAny(name, ["chinese", "noodles", "fried rice", "momos", "roll", "sandwich"])) reasons.push("budget comfort food");
+    if (!reasons.length) reasons.push("low-cost chill spot");
+
+    return `Good for <b>budget</b>: ${reasons.slice(0, 2).join(" + ")} + ${nearWord} + <b>${cat}</b>.`;
   }
-  return `Recommended because it’s ${nearWord} and matches ${cat}.`;
+
+  return `Recommended because it’s ${nearWord} and matches <b>${cat}</b>.`;
 }
+
 
 /* favorites */
 function placeStableId(p) {
@@ -932,106 +1018,3 @@ function stopFollowRequestPolling() {
   // ✅ stop polling on unload
   window.addEventListener("beforeunload", stopFollowRequestPolling);
 })();
-
-
-
-/* ===================== USER SEARCH ===================== */
-
-const userSearch = document.getElementById("userSearch");
-const userDrop = document.getElementById("userDrop");
-const dropList = document.getElementById("dropList");
-const searchWrap = document.getElementById("searchWrap");
-
-let searchTimer = null;
-let lastQuery = "";
-
-function openDrop() {
-  if (userDrop) userDrop.style.display = "block";
-}
-function closeDrop() {
-  if (userDrop) userDrop.style.display = "none";
-}
-
-async function doUserSearch(q) {
-  if (!dropList) return;
-
-  if (!q || q.length < 2) {
-    dropList.innerHTML = `<div class="emptyDrop">Type at least 2 letters.</div>`;
-    return;
-  }
-
-  dropList.innerHTML = `<div class="emptyDrop">Searching…</div>`;
-
-  try {
-    const r = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`);
-    const data = await r.json();
-    const list = Array.isArray(data) ? data : [];
-
-    if (q !== lastQuery) return;
-
-    if (!list.length) {
-      dropList.innerHTML = `<div class="emptyDrop">No users found.</div>`;
-      return;
-    }
-
-    dropList.innerHTML = "";
-    list.forEach(u => {
-      const item = document.createElement("div");
-      item.className = "dropItem";
-
-      const pfp = (u.profile_pic || "").trim();
-      const letter = (u.name || "U").slice(0, 1).toUpperCase();
-
-      item.innerHTML = `
-        <div class="dropLeft">
-          <div class="avatar">
-            ${pfp ? `<img src="${pfp}" style="width:100%;height:100%;object-fit:cover;border-radius:14px;" />` : letter}
-          </div>
-          <div style="min-width:0;">
-            <div class="dropName">${u.name}</div>
-            <div class="dropUser">@${u.username}</div>
-          </div>
-        </div>
-        <div class="lockBadge">${u.is_private ? " Private" : " Public"}</div>
-      `;
-      item.onclick = () => {
-        location.href = "/u/" + u.username;
-      };
-      dropList.appendChild(item);
-    });
-
-  } catch {
-    dropList.innerHTML = `<div class="emptyDrop">Error searching users.</div>`;
-  }
-}
-
-if (userSearch) {
-  userSearch.addEventListener("input", () => {
-    const q = (userSearch.value || "").trim().toLowerCase();
-    lastQuery = q;
-    openDrop();
-
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-      doUserSearch(q);
-    }, 250);
-  });
-
-  userSearch.addEventListener("focus", () => {
-    openDrop();
-    doUserSearch((userSearch.value || "").trim().toLowerCase());
-  });
-}
-
-/* close dropdown when clicking outside */
-document.addEventListener("click", (e) => {
-  if (searchWrap && !searchWrap.contains(e.target)) {
-    closeDrop();
-  }
-});
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    closeDrop();
-  }
-});
