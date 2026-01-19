@@ -1230,7 +1230,7 @@ def api_favorites_remove():
 
 
 # =========================================================
-# ✅ PLACES API (NEW LOGIC)
+# ✅ PLACES API (FIXED LOGIC)
 # =========================================================
 def haversine(lat1, lon1, lat2, lon2):
     lat1, lon1, lat2, lon2 = map(float, [lat1, lon1, lat2, lon2])
@@ -1261,15 +1261,95 @@ def _contains_any(text: str, keywords):
     return any(k in t for k in keywords)
 
 
+# ✅ keyword banks for strict filtering
+WORK_KEYWORDS = [
+    "starbucks", "ccd", "cafe coffee day", "third wave", "thirdwave",
+    "book cafe", "book café", "roastery", "coffee", "coffee house",
+    "cowork", "co-work", "workspace", "study", "library", "reading",
+    "iraj", "irani"
+]
+
+DATE_KEYWORDS = [
+    "bistro", "lounge", "rooftop", "terrace", "garden", "aesthetic",
+    "cafe", "café", "coffee", "patisserie", "bakery", "brunch"
+]
+
+DATE_BAD_KEYWORDS = [
+    "dhaba", "canteen", "mess", "misal", "vada pav", "vadapav", "tapri",
+    "roll", "shawarma", "momos"
+]
+
+BUDGET_KEYWORDS = [
+    "misal", "vadapav", "vada pav", "poha", "upma", "chai", "tea", "tapri",
+    "momos", "roll", "shawarma", "sandwich", "bhurji", "omelette",
+    "chinese", "noodles", "fried rice", "thali", "mess", "bhojanalay",
+    "snacks", "juice", "cold coffee", "tiffin"
+]
+
+EXPENSIVE_KEYWORDS = [
+    "fine dine", "fine-dine", "luxury", "premium", "bar", "pub"
+]
+
+
+def _hard_filter_place(mood: str, tags: dict):
+    """
+    ✅ Critical filter: prevents wrong places from leaking between moods.
+    """
+    amenity = _safe_str(tags.get("amenity", "")).lower()
+    name = _safe_str(tags.get("name", "")).lower()
+
+    if mood == "quick_bite":
+        return amenity == "fast_food"
+
+    if mood == "budget":
+        # budget should NOT include cafes
+        if amenity not in ["restaurant", "fast_food", "food_court"]:
+            return False
+        if _contains_any(name, EXPENSIVE_KEYWORDS):
+            return False
+        return True
+
+    if mood == "date":
+        if amenity not in ["cafe", "restaurant"]:
+            return False
+        if amenity == "fast_food":
+            return False
+        if _contains_any(name, DATE_BAD_KEYWORDS):
+            return False
+        # allow date vibe if keywords or outdoor seating or wheelchair
+        vibe_ok = (
+            _contains_any(name, DATE_KEYWORDS)
+            or _safe_str(tags.get("outdoor_seating")).lower() == "yes"
+            or _safe_str(tags.get("wheelchair")).lower() == "yes"
+        )
+        return vibe_ok
+
+    if mood == "work":
+        # coworking
+        if amenity == "coworking_space":
+            return True
+        if _safe_str(tags.get("office")).lower() == "coworking":
+            return True
+
+        if amenity == "cafe":
+            wifi_ok = _safe_str(tags.get("internet_access")).lower() in ["yes", "wlan", "wifi"]
+            kw_ok = _contains_any(name, WORK_KEYWORDS)
+            return wifi_ok or kw_ok
+
+        return False
+
+    return True
+
+
 def _score_place(mood: str, tags: dict, distance_km: float):
     """
     Ranking system:
-    - distance still matters but not everything
-    - mood-based scoring using OSM tags + name keyword boosts
+    - distance matters
+    - mood-based scoring + keyword boosts
     """
     score = 0.0
 
-    # base: prefer closer places
+    # base distance
     if distance_km <= 0.3:
         score += 18
     elif distance_km <= 0.8:
@@ -1286,7 +1366,7 @@ def _score_place(mood: str, tags: dict, distance_km: float):
     name = _safe_str(tags.get("name", "")).lower()
     amenity = _safe_str(tags.get("amenity", "")).lower()
 
-    # common boosts
+    # boosts
     if _safe_str(tags.get("opening_hours")):
         score += 2
     if _safe_str(tags.get("website")) or _safe_str(tags.get("contact:website")):
@@ -1294,107 +1374,57 @@ def _score_place(mood: str, tags: dict, distance_km: float):
     if _safe_str(tags.get("phone")) or _safe_str(tags.get("contact:phone")):
         score += 1
 
+    if _safe_str(tags.get("internet_access")).lower() in ["yes", "wlan", "wifi"]:
+        score += 5
+
     if mood == "work":
-        # coworking spaces (real work spots)
-        if amenity in ["coworking_space", "workspace", "office"]:
-            score += 40
-
-        # cafes
+        if amenity == "coworking_space" or _safe_str(tags.get("office")).lower() == "coworking":
+            score += 60
         if amenity == "cafe":
-            score += 18
-
-        # laptop/wifi friendly signals
-        if _safe_str(tags.get("internet_access")).lower() in ["yes", "wlan", "wifi"]:
-            score += 10
-        if _safe_str(tags.get("wifi")).lower() == "yes":
-            score += 8
-
-        # keywords: laptop friendly brands / work cafes
-        work_kw = [
-            "starbucks", "ccd", "cafe coffee day", "third wave", "barista",
-            "book cafe", "book café", "coffee", "coffee house", "co-working", "cowork",
-            "workspace", "study", "iraj", "irani", "roastery"
-        ]
-        if _contains_any(name, work_kw):
-            score += 12
-
-        # discourage noisy / snack stalls
-        if amenity in ["fast_food"]:
-            score -= 25
+            score += 16
+        if _contains_any(name, WORK_KEYWORDS):
+            score += 14
+        if amenity == "fast_food":
+            score -= 40
 
     elif mood == "date":
-        # aesthetic cafes + restaurants
         if amenity == "cafe":
-            score += 22
+            score += 18
         if amenity == "restaurant":
-            score += 16
-
-        # vibe predictors
+            score += 14
         if _safe_str(tags.get("outdoor_seating")).lower() == "yes":
+            score += 14
+        if _contains_any(name, DATE_KEYWORDS):
             score += 12
-        if _safe_str(tags.get("wheelchair")).lower() == "yes":
-            score += 6
-        if _safe_str(tags.get("internet_access")).lower() in ["yes", "wlan", "wifi"]:
-            score += 6
-
-        # ambience keywords
-        date_kw = ["bistro", "lounge", "rooftop", "terrace", "garden", "aesthetic", "cafe", "café", "coffee"]
-        if _contains_any(name, date_kw):
-            score += 10
-
-        # penalty: fast food / dhaba / canteen vibes
-        bad_date_kw = ["dhaba", "canteen", "mess", "misal", "vada pav", "vadapav", "roll", "shawarma", "momos"]
+        if _contains_any(name, DATE_BAD_KEYWORDS):
+            score -= 25
         if amenity == "fast_food":
-            score -= 30
-        if _contains_any(name, bad_date_kw):
-            score -= 10
-
-        # approximate less crowded:
-        # places with outdoor seating + website + wheelchair tend to be calmer / premium
-        if _safe_str(tags.get("outdoor_seating")).lower() == "yes" and (_safe_str(tags.get("website")) or _safe_str(tags.get("contact:website"))):
-            score += 6
+            score -= 60
 
     elif mood == "quick_bite":
         if amenity == "fast_food":
-            score += 26
+            score += 30
         else:
-            score -= 30
-
-        # quick bite keywords
-        qb_kw = ["burger", "pizza", "fries", "sandwich", "sub", "wrap", "roll", "momos", "shawarma"]
-        if _contains_any(name, qb_kw):
-            score += 8
+            score -= 70
 
     elif mood == "budget":
-        # cheap friendly local food
-        # allow restaurant + fast_food but heavy boosts for local keywords
-
         if amenity == "fast_food":
-            score += 14
+            score += 12
         if amenity == "restaurant":
             score += 10
-
-        # pocket friendly keywords
-        budget_kw = [
-            "misal", "vadapav", "vada pav", "poha", "upma", "chai", "tea",
-            "momos", "roll", "shawarma", "sandwich", "bhurji", "omelette",
-            "chinese", "noodles", "fried rice", "thali", "mess",
-            "tiffin", "snacks", "juice", "cold coffee"
-        ]
-        if _contains_any(name, budget_kw):
-            score += 18
-
-        # avoid expensive-looking
-        expensive_kw = ["fine dine", "fine-dine", "luxury", "premium", "bar", "pub"]
-        if _contains_any(name, expensive_kw):
-            score -= 12
+        if amenity == "food_court":
+            score += 14
+        if _contains_any(name, BUDGET_KEYWORDS):
+            score += 22
+        if _contains_any(name, EXPENSIVE_KEYWORDS):
+            score -= 18
 
     return score
 
 
 def fetch_places_for_mood(mood, lat, lon, radius=5000):
     """
-    NEW: mood-specific Overpass query building
+    mood-specific Overpass query building
     """
     lat = float(lat)
     lon = float(lon)
@@ -1402,13 +1432,11 @@ def fetch_places_for_mood(mood, lat, lon, radius=5000):
     blocks = []
 
     if mood == "work":
-        # ✅ coworking + cafes
         blocks.append(f'node["amenity"="coworking_space"](around:{radius},{lat},{lon});')
         blocks.append(f'node["office"="coworking"](around:{radius},{lat},{lon});')
         blocks.append(f'node["amenity"="cafe"](around:{radius},{lat},{lon});')
 
     elif mood == "date":
-        # ✅ cafe + restaurant + vibe signals
         blocks.append(f'node["amenity"="cafe"](around:{radius},{lat},{lon});')
         blocks.append(f'node["amenity"="restaurant"](around:{radius},{lat},{lon});')
         blocks.append(f'node["amenity"="cafe"]["outdoor_seating"="yes"](around:{radius},{lat},{lon});')
@@ -1420,10 +1448,9 @@ def fetch_places_for_mood(mood, lat, lon, radius=5000):
         blocks.append(f'node["amenity"="fast_food"](around:{radius},{lat},{lon});')
 
     elif mood == "budget":
-        # ✅ include variety: restaurant + fast_food + food courts
+        # ✅ FIX: no cafes in budget at all
         blocks.append(f'node["amenity"="restaurant"](around:{radius},{lat},{lon});')
         blocks.append(f'node["amenity"="fast_food"](around:{radius},{lat},{lon});')
-        blocks.append(f'node["amenity"="cafe"](around:{radius},{lat},{lon});')
         blocks.append(f'node["amenity"="food_court"](around:{radius},{lat},{lon});')
 
     query = f"""
@@ -1431,7 +1458,7 @@ def fetch_places_for_mood(mood, lat, lon, radius=5000):
     (
       {''.join(blocks)}
     );
-    out 120;
+    out 160;
     """
 
     headers = {
@@ -1476,7 +1503,6 @@ def recommend():
     if not user_lat or not user_lon:
         return jsonify([])
 
-    # slightly different radius per mood
     radius = 4500
     if mood == "work":
         radius = 6000
@@ -1487,7 +1513,6 @@ def recommend():
 
     raw = fetch_places_for_mood(mood, user_lat, user_lon, radius)
 
-    # retry once if empty
     if not raw:
         time.sleep(0.7)
         raw = fetch_places_for_mood(mood, user_lat, user_lon, radius)
@@ -1502,6 +1527,10 @@ def recommend():
         if not lat or not lon:
             continue
 
+        # ✅ CRITICAL FIX: strict mood filter
+        if not _hard_filter_place(mood, t):
+            continue
+
         osm_id = p.get("id", i)
         pid = f"osm_{osm_id}"
         if pid in seen:
@@ -1512,9 +1541,7 @@ def recommend():
         category = t.get("amenity") or t.get("leisure") or t.get("office") or "place"
         name = t.get("name", (category or "place").replace("_", " ").title())
 
-        # ignore unnamed generic rubbish sometimes
         if not name or name.strip().lower() in ["cafe", "restaurant", "fast food", "place"]:
-            # still allow if super close
             if distance > 1.2:
                 continue
 
@@ -1533,10 +1560,8 @@ def recommend():
             "_score": score
         })
 
-    # ranking: score desc then distance
     places.sort(key=lambda x: (-x["_score"], x["distance"]))
 
-    # remove internal score
     for p in places:
         p.pop("_score", None)
 

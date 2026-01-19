@@ -786,8 +786,10 @@ setInterval(() => {
 document.getElementById("mood").addEventListener("change", () => {
   const mood = document.getElementById("mood").value;
   applyMoodTheme(mood);
-  if (lastPlaces.length) renderPlacesFiltered();
+  lastPlaces = []; // ✅ clear old places so UI doesn't "change"
+  document.getElementById("results").innerHTML = `<div style="opacity:.65; padding:50px 0; text-align:center;">Click <b>Find nearby places</b> to load new recommendations.</div>`;
 });
+
 
 
 /* ===================== PROFILE + REQUESTS ===================== */
