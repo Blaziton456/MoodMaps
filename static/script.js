@@ -567,7 +567,7 @@ let modalOpen = false;
 let lastFocusedEl = null;
 let focusTrapHandler = null;
 
-// cache iframe src so it doesn't reload
+/* cache iframe src so it doesn't reload */
 let lastMapIframeSrc = "";
 
 function lockScroll(lock) {
@@ -619,7 +619,6 @@ function disableFocusTrap() {
 function openModalShell() {
   if (!backdrop || !modal) return;
 
-  // ✅ reset any stuck state (prevents click-block bug)
   backdrop.classList.remove("active");
   modal.classList.remove("active");
 
@@ -661,8 +660,10 @@ function closeModalShell() {
 }
 
 document.addEventListener("keydown", (e) => {
-  if (!modalOpen) return;
-  if (e.key === "Escape") closeModal();
+  if (e.key === "Escape") {
+    if (modalOpen) closeModal();
+    if (isReqOpen()) closeReqPanel();
+  }
 });
 
 if (backdrop) backdrop.addEventListener("click", closeModal);
@@ -673,7 +674,6 @@ function showModalLoader(place) {
   const bbox = `${place.lon - 0.015},${place.lat - 0.01},${place.lon + 0.015},${place.lat + 0.01}`;
   const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${place.lat},${place.lon}`;
 
-  // ✅ cache iframe src
   lastMapIframeSrc = mapUrl;
 
   modalInner.innerHTML = `
@@ -737,7 +737,6 @@ function showModalLoader(place) {
     };
   }
 
-  // ✅ autofocus close btn
   setTimeout(() => {
     const btn = document.getElementById("modalCloseBtn");
     if (btn) btn.focus();
@@ -807,7 +806,6 @@ async function openModal(place) {
   const bbox = `${lon - 0.015},${lat - 0.01},${lon + 0.015},${lat + 0.01}`;
   const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`;
 
-  // ✅ reuse iframe src if same place opened again
   const finalMapSrc = (lastMapIframeSrc && lastMapIframeSrc === mapUrl) ? lastMapIframeSrc : mapUrl;
   lastMapIframeSrc = finalMapSrc;
 
@@ -971,9 +969,7 @@ async function openModal(place) {
   }
 
   const navBtn = document.getElementById("mmNavBtn");
-  if (navBtn) {
-    navBtn.onclick = () => window.open(details?.maps || buildMapsUrl(lat, lon), "_blank");
-  }
+  if (navBtn) navBtn.onclick = () => window.open(details?.maps || buildMapsUrl(lat, lon), "_blank");
 
   const shareBtn = document.getElementById("mmShareBtn");
   if (shareBtn) {
@@ -996,7 +992,6 @@ async function openModal(place) {
     };
   }
 
-  // ✅ autofocus close after render
   setTimeout(() => {
     const btn = document.getElementById("modalCloseBtn");
     if (btn) btn.focus();
@@ -1116,13 +1111,23 @@ function renderPlaces(data) {
       card.style.setProperty("--my", `${my}%`);
     });
 
-    card.querySelector(".openBtn").onclick = (e) => { e.stopPropagation(); openModal(p); };
+    const openBtn = card.querySelector(".openBtn");
+    if (openBtn) {
+      openBtn.onclick = (e) => {
+        e.stopPropagation();
+        openModal(p);
+      };
+    }
+
     card.onclick = () => openModal(p);
 
-    card.querySelector(".pinBtn").onclick = async (e) => {
-      e.stopPropagation();
-      await toggleFav(p);
-    };
+    const pinBtn = card.querySelector(".pinBtn");
+    if (pinBtn) {
+      pinBtn.onclick = async (e) => {
+        e.stopPropagation();
+        await toggleFav(p);
+      };
+    }
 
     results.appendChild(card);
   });
@@ -1156,18 +1161,6 @@ function showNoPlacesMessage() {
   ✅ Find places (Fixed: waits for fresh GPS + smart retry)
   ========================================================= */
 
-async function fetchPlacesFromAPI(mood) {
-  const r = await fetch("/api/recommend", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mood, latitude: userLat, longitude: userLon })
-  });
-
-  const data = await r.json();
-  return Array.isArray(data) ? data : [];
-}
-
-/* ✅ Find places (Improved) */
 async function findPlaces() {
   if (loading) return;
   loading = true;
@@ -1180,12 +1173,7 @@ async function findPlaces() {
   setSkeleton();
 
   try {
-    console.log("🟡 Before ensureFreshLocation -> ready:", ready, "lat:", userLat, "lon:", userLon);
-
     const ok = await ensureFreshLocation(10000);
-
-    console.log("🟢 After ensureFreshLocation -> ok:", ok, "ready:", ready, "lat:", userLat, "lon:", userLon, "acc:", lastGeoAcc);
-
     if (!ok || !isLocationValid()) {
       showNoPlacesMessage();
       return;
@@ -1193,8 +1181,6 @@ async function findPlaces() {
 
     await fetchFavoritesFromDB();
     renderSavedGrouped();
-
-    console.log("➡️ Calling /api/recommend ...");
 
     const r = await fetch("/api/recommend", {
       method: "POST",
@@ -1204,8 +1190,6 @@ async function findPlaces() {
 
     const data = await r.json();
     lastPlaces = Array.isArray(data) ? data : [];
-
-    console.log("✅ /api/recommend returned:", lastPlaces.length, "places");
 
     if (!lastPlaces.length) {
       showNoPlacesMessage();
@@ -1237,16 +1221,13 @@ setInterval(() => {
   if (lastPlaces.length) renderPlacesFiltered();
 }, 30000);
 
-const moodSelect = document.getElementById("mood");
-if (moodSelect) {
-  moodSelect.addEventListener("change", () => {
-    const mood = moodSelect.value;
+const moodSel = document.getElementById("mood");
+if (moodSel) {
+  moodSel.addEventListener("change", () => {
+    const mood = document.getElementById("mood").value;
     applyMoodTheme(mood);
     lastPlaces = [];
-    const results = document.getElementById("results");
-    if (results) {
-      results.innerHTML = `<div style="opacity:.65; padding:50px 0; text-align:center;">Click <b>Find nearby places</b> to load new recommendations.</div>`;
-    }
+    document.getElementById("results").innerHTML = `<div style="opacity:.65; padding:50px 0; text-align:center;">Click <b>Find nearby places</b> to load new recommendations.</div>`;
   });
 }
 
@@ -1333,7 +1314,9 @@ async function copyTextSmart(text) {
   }
 })();
 
-/* ===================== FOLLOW REQUESTS MODAL (FIXED PANEL) ===================== */
+/* =========================================================
+   ✅ Follow Requests: Bottom-Right Floating Panel (NO BLOCKING)
+   ========================================================= */
 
 const reqBtn = document.getElementById("reqBtn");
 const reqCount = document.getElementById("reqCount");
@@ -1342,24 +1325,139 @@ const reqModal = document.getElementById("reqModal");
 const reqCloseBtn = document.getElementById("reqCloseBtn");
 const reqList = document.getElementById("reqList");
 
-/* ✅ Fix: stop modal click from closing */
-if (reqModal) {
-  reqModal.addEventListener("click", (e) => e.stopPropagation());
+/* Inject pro styles for bottom-right panel */
+(function injectReqPanelCSS() {
+  const css = `
+  #reqBackdrop{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+  }
+  #reqModal{
+    position: fixed !important;
+    right: 22px !important;
+    bottom: 22px !important;
+    left: auto !important;
+    top: auto !important;
+
+    width: min(440px, 92vw);
+    max-height: 52vh;
+    overflow: hidden;
+
+    border-radius: 22px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: linear-gradient(180deg, rgba(22,25,40,0.92), rgba(0,0,0,0.82));
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+
+    box-shadow:
+      0 40px 140px rgba(0,0,0,0.70),
+      0 1px 0 rgba(255,255,255,0.05) inset;
+
+    z-index: 9997;
+    transform: translateY(18px) scale(0.98);
+    opacity: 0;
+    pointer-events: none;
+
+    transition: transform 220ms cubic-bezier(.2,1,.2,1),
+                opacity 220ms cubic-bezier(.2,1,.2,1);
+  }
+
+  #reqModal.active{
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  #reqModal .reqInner{
+    padding: 16px 16px 14px;
+  }
+
+  #reqModal .reqTitle{
+    margin:0;
+    font-weight:1000;
+    font-size:15px;
+    letter-spacing:-0.2px;
+  }
+
+  #reqModal .reqSub{
+    margin-top:5px;
+    font-size:12px;
+    opacity:.68;
+  }
+
+  #reqModal .reqList{
+    margin-top: 12px;
+    max-height: calc(52vh - 90px);
+    overflow: auto;
+    padding-right: 4px;
+  }
+  #reqModal .reqList::-webkit-scrollbar{ width: 8px; }
+  #reqModal .reqList::-webkit-scrollbar-thumb{
+    background: rgba(255,255,255,0.14);
+    border-radius: 999px;
+  }
+
+  #reqCloseBtn.reqClose{
+    margin-left:auto;
+    width:38px;
+    height:38px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.14);
+    background:rgba(255,255,255,0.08);
+    cursor:pointer;
+    font-weight:1000;
+  }
+
+  .reqEmptyGood{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    padding:14px 14px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(0,0,0,0.20);
+    font-size:13px;
+    opacity: .9;
+  }
+
+  .reqEmptyGood .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:#22c55e;
+    box-shadow:0 0 20px rgba(34,197,94,0.35);
+    flex:0 0 auto;
+  }
+  `;
+  const style = document.createElement("style");
+  style.innerHTML = css;
+  document.head.appendChild(style);
+})();
+
+function isReqOpen() {
+  return reqModal && reqModal.classList.contains("active");
 }
 
-/* ✅ Better panel open/close */
-function openReqModal() {
-  if (reqBackdrop) reqBackdrop.classList.add("active");
-  if (reqModal) reqModal.classList.add("active");
+function openReqPanel() {
+  if (!reqModal) return;
+  reqModal.classList.add("active");
 }
 
-function closeReqModal() {
-  if (reqBackdrop) reqBackdrop.classList.remove("active");
-  if (reqModal) reqModal.classList.remove("active");
+function closeReqPanel() {
+  if (!reqModal) return;
+  reqModal.classList.remove("active");
 }
 
-if (reqBackdrop) reqBackdrop.addEventListener("click", closeReqModal);
-if (reqCloseBtn) reqCloseBtn.onclick = closeReqModal;
+/* Make sure backdrop NEVER blocks clicks */
+if (reqBackdrop) {
+  reqBackdrop.style.pointerEvents = "none";
+  reqBackdrop.style.opacity = "0";
+}
+
+if (reqCloseBtn) {
+  reqCloseBtn.onclick = closeReqPanel;
+}
 
 async function fetchRequests() {
   try {
@@ -1373,7 +1471,7 @@ async function fetchRequests() {
         reqBtn.style.display = "inline-flex";
         reqCount.innerText = `(${n})`;
       } else {
-        reqBtn.style.display = "inline-flex";   // ✅ always show panel button
+        reqBtn.style.display = "none";
         reqCount.innerText = "";
       }
     }
@@ -1381,19 +1479,14 @@ async function fetchRequests() {
     if (!reqList) return;
 
     reqList.innerHTML = "";
-
     if (!n) {
       reqList.innerHTML = `
-        <div style="
-          padding:18px;
-          border-radius:18px;
-          border:1px solid rgba(255,255,255,0.12);
-          background: rgba(0,0,0,0.22);
-          font-size:13px;
-          opacity:.80;
-          text-align:center;
-        ">
-          ✅ No pending requests right now.
+        <div class="reqEmptyGood">
+          <span class="dot"></span>
+          <div>
+            <div style="font-weight:1000;">No pending requests right now.</div>
+            <div style="opacity:.68;font-size:12px;margin-top:4px;">You’re all caught up ✅</div>
+          </div>
         </div>
       `;
       return;
@@ -1438,15 +1531,13 @@ async function fetchRequests() {
       reqList.appendChild(div);
     });
 
-  } catch (e) {
-    console.log("❌ fetchRequests error:", e);
-  }
+  } catch { }
 }
 
 if (reqBtn) {
   reqBtn.onclick = async () => {
     await fetchRequests();
-    openReqModal();
+    openReqPanel();
   };
 }
 
@@ -1490,24 +1581,4 @@ function stopFollowRequestPolling() {
   });
 
   window.addEventListener("beforeunload", stopFollowRequestPolling);
-})();
-
-/* =========================================================
-   ✅ FINAL CLICK-BLOCK FIX (IMPORTANT)
-   sometimes backdrop gets stuck due to CSS states
-   this makes sure cards are always clickable
-   ========================================================= */
-(function hardUnblockClickLayer() {
-  setInterval(() => {
-    const bd = document.getElementById("modalBackdrop");
-    const md = document.getElementById("modal");
-    if (!bd || !md) return;
-
-    const modalIsActive = md.classList.contains("active");
-    const bdIsActive = bd.classList.contains("active");
-
-    if (!modalIsActive && bdIsActive) {
-      bd.classList.remove("active");
-    }
-  }, 1500);
 })();
