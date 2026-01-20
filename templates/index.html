@@ -545,181 +545,33 @@ button:disabled{
 }
 @keyframes shimmer{to{transform:translateX(100%)}}
 
-/* ================= Modal ================= */
-#modalBackdrop{
-  position:fixed; inset:0; z-index:80;
-  background:rgba(0,0,0,0.62);
-  backdrop-filter: blur(10px);
-  opacity:0; pointer-events:none;
-  transition: opacity .22s ease;
-}
-#modalBackdrop.active{opacity:1;pointer-events:auto}
+/* ===========================
+   ✅ Modal Smooth Animations
+   =========================== */
 
-#modal{
-  position:fixed;
-  left:50%;
-  top:52%;
-  transform: translate(-50%,-50%) scale(0.98);
-  width:min(1020px, 94vw);
-  max-height:90vh;
-  overflow:hidden;
-  border-radius:24px;
-  z-index:81;
-  border:1px solid rgba(255,255,255,0.18);
-  background: linear-gradient(180deg, rgba(20,25,40,0.90), rgba(10,12,20,0.82));
-  backdrop-filter: blur(22px);
-  box-shadow: 0 70px 190px rgba(0,0,0,0.82);
-  opacity:0;
-  pointer-events:none;
-  transition: opacity .22s ease, transform .22s ease;
-}
-#modal.active{
-  opacity:1;
-  pointer-events:auto;
-  transform: translate(-50%,-50%) scale(1);
+/* Backdrop smooth fade */
+#modalBackdrop {
+  transition: opacity 220ms ease;
 }
 
-.modalInner{padding:0}
-
-.modalBody{
-  display:grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap:16px;
+/* Modal container smooth animation */
+#modal {
+  transition: transform 220ms ease, opacity 220ms ease;
+  will-change: transform, opacity;
 }
 
-.modalMap{
-  width:100%;
-  height:380px;
-  border-radius:20px;
-  overflow:hidden;
-  border:1px solid rgba(255,255,255,0.14)
-}
-.modalMap iframe{width:100%;height:100%;border:0}
-
-.detailsBox{
-  border-radius:20px;
-  border:1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.05);
-  padding:14px;
-  min-height: 220px;
+/* When opening */
+#modal.modalAnimatingIn {
+  opacity: 0;
+  transform: translateY(12px) scale(0.985);
 }
 
-.detailsTitle{
-  font-weight:1000;
-  font-size:14px;
-  margin:0 0 12px 0;
-  color:rgba(255,255,255,0.90);
+/* When closing */
+#modal.modalAnimatingOut {
+  opacity: 0;
+  transform: translateY(12px) scale(0.985);
 }
 
-.detailsText{
-  font-size:13px;
-  line-height:1.55;
-  color:rgba(255,255,255,0.72);
-}
-
-.modalActions{
-  margin-top:14px;
-  display:flex;
-  gap:12px;
-  flex-wrap:wrap;
-}
-
-.linkBtn{
-  display:inline-flex;
-  gap:10px;
-  align-items:center;
-  padding:10px 14px;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,0.16);
-  background: rgba(0,0,0,0.32);
-  color:white;
-  text-decoration:none;
-  font-weight:1000;
-  font-size:13px;
-  transition: transform .16s ease, border .16s ease;
-}
-.linkBtn:hover{
-  transform: translateY(-2px);
-  border-color: rgba(255,255,255,0.26);
-}
-
-/* ================= Follow Requests Modal ================= */
-#reqBackdrop{
-  position:fixed; inset:0; z-index:120;
-  background:rgba(0,0,0,0.62);
-  backdrop-filter: blur(10px);
-  opacity:0; pointer-events:none;
-  transition: opacity .2s ease;
-}
-#reqBackdrop.active{opacity:1;pointer-events:auto}
-
-#reqModal{
-  position:fixed; left:50%; top:55%; z-index:121;
-  transform:translate(-50%,-50%) scale(.96);
-  width:min(560px,92vw);
-  border-radius:24px;
-  border:1px solid rgba(255,255,255,0.18);
-  background: linear-gradient(180deg, rgba(20,25,40,0.92), rgba(10,12,20,0.82));
-  backdrop-filter: blur(22px);
-  box-shadow: 0 70px 190px rgba(0,0,0,0.82);
-  opacity:0; pointer-events:none;
-  transition: opacity .2s ease, transform .2s ease;
-}
-#reqModal.active{
-  opacity:1;
-  pointer-events:auto;
-  transform:translate(-50%,-50%) scale(1)
-}
-
-.reqInner{padding:18px}
-.reqTitle{font-size:16px;font-weight:1000;margin:0}
-.reqSub{margin-top:8px;font-size:13px;color:rgba(255,255,255,0.70)}
-.reqList{
-  margin-top:14px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  max-height:50vh;
-  overflow:auto;
-  padding-right:4px
-}
-.reqItem{
-  padding:14px;border-radius:20px;
-  border:1px solid rgba(255,255,255,0.14);
-  background:rgba(255,255,255,0.05);
-  display:flex;justify-content:space-between;gap:12px;align-items:center;
-}
-.reqUser{font-weight:1000}
-.reqMeta{font-size:12px;color:rgba(255,255,255,0.62);margin-top:6px}
-.reqBtns{display:flex;gap:10px}
-
-.smallBtn{
-  padding:10px 12px;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,0.16);
-  background:rgba(0,0,0,0.28);
-  color:white;
-  cursor:pointer;
-  font-weight:1000;
-  transition: transform .16s ease;
-}
-.smallBtn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none}
-.smallBtn.danger{background:rgba(239,68,68,0.18);border-color:rgba(239,68,68,0.28)}
-.smallBtn:hover{transform:translateY(-2px)}
-.reqClose{margin-left:auto}
-
-/* responsive */
-@media (max-width: 900px){
-  .modalBody{grid-template-columns:1fr}
-  .modalMap{height:300px}
-}
-
-@media (max-width: 800px){
-  button{margin-left:0}
-  input[type="text"]{width:100%}
-  .controls{width:100%}
-  .userSearch{width:86vw; max-width:330px;}
-}
 </style>
 </head>
 
