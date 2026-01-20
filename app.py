@@ -1454,7 +1454,7 @@ def fetch_places_for_mood(mood, lat, lon, radius=5000):
         blocks.append(f'node["amenity"="food_court"](around:{radius},{lat},{lon});')
 
     query = f"""
-    [out:json][timeout:18];
+    [out:json][timeout:30];
     (
       {''.join(blocks)}
     );
@@ -1469,7 +1469,7 @@ def fetch_places_for_mood(mood, lat, lon, radius=5000):
 
     for url in OVERPASS_URLS:
         try:
-            res = requests.post(url, data=query, timeout=18, headers=headers)
+            res = requests.post(url, data=query, timeout=28, headers=headers)
             txt = (res.text or "").strip()
 
             if not txt or "html" in txt.lower():
@@ -1485,6 +1485,408 @@ def fetch_places_for_mood(mood, lat, lon, radius=5000):
             continue
 
     return []
+
+
+# =========================================================
+# ✅ NEW: PLACE DETAILS SYSTEM (Option 1 Hybrid Free)
+# =========================================================
+
+PLACE_DETAILS_CACHE = {}
+PLACE_DETAILS_TTL_SEC = 10 * 60
+
+
+def _cache_get(key: str):
+    try:
+        item = PLACE_DETAILS_CACHE.get(key)
+        if not item:
+            return None
+        if int(time.time()) > int(item.get("expires_at", 0)):
+            PLACE_DETAILS_CACHE.pop(key, None)
+            return None
+        return item.get("data")
+    except:
+        return None
+
+
+def _cache_set(key: str, data):
+    try:
+        PLACE_DETAILS_CACHE[key] = {
+            "expires_at": int(time.time()) + PLACE_DETAILS_TTL_SEC,
+            "data": data
+        }
+    except:
+        pass
+
+
+def _safe_float(x):
+    try:
+        return float(x)
+    except:
+        return None
+
+
+def _build_maps_url(lat, lon):
+    try:
+        return f"https://www.google.com/maps?q={lat},{lon}"
+    except:
+        return ""
+
+
+def _clean_tag_value(v):
+    try:
+        if v is None:
+            return ""
+        v = str(v).strip()
+        if len(v) > 340:
+            v = v[:340] + "…"
+        return v
+    except:
+        return ""
+
+
+def _pick_category_from_tags(tags: dict):
+    if not tags:
+        return "place"
+    for k in ["amenity", "shop", "tourism", "leisure", "office", "building"]:
+        if tags.get(k):
+            return str(tags.get(k))
+    return "place"
+
+
+def _extract_contact(tags: dict):
+    if not tags:
+        tags = {}
+    phone = tags.get("phone") or tags.get("contact:phone") or tags.get("mobile") or tags.get("contact:mobile") or ""
+    website = tags.get("website") or tags.get("contact:website") or tags.get("url") or tags.get("contact:url") or ""
+    email = tags.get("email") or tags.get("contact:email") or ""
+    instagram = tags.get("contact:instagram") or tags.get("instagram") or ""
+    facebook = tags.get("contact:facebook") or tags.get("facebook") or ""
+    return {
+        "phone": _clean_tag_value(phone),
+        "website": _clean_tag_value(website),
+        "email": _clean_tag_value(email),
+        "instagram": _clean_tag_value(instagram),
+        "facebook": _clean_tag_value(facebook),
+    }
+
+
+def _reverse_geocode_nominatim(lat, lon):
+    """
+    Returns:
+      { display_name, address }
+    """
+    try:
+        url = "https://nominatim.openstreetmap.org/reverse"
+        params = {
+            "format": "jsonv2",
+            "lat": lat,
+            "lon": lon,
+            "zoom": 18,
+            "addressdetails": 1
+        }
+        headers = {
+            "User-Agent": "MoodMap/1.0 (contact: moodmap)"
+        }
+        r = requests.get(url, params=params, headers=headers, timeout=10)
+        if r.status_code != 200:
+            return None
+        data = r.json()
+        return data
+    except Exception as e:
+        print("⚠️ nominatim reverse error:", e)
+        return None
+
+
+def _fetch_overpass_element(osm_type: str, osm_id: int):
+    """
+    Returns an element dict with tags + center/lat/lon.
+    """
+    osm_type = (osm_type or "").strip().lower()
+    if osm_type not in ["node", "way", "relation"]:
+        return None
+
+    # for way/relation, ask for center
+    query = f"""
+    [out:json][timeout:25];
+    (
+      {osm_type}({int(osm_id)});
+    );
+    out center tags;
+    """
+
+    headers = {
+        "User-Agent": "MoodMap/1.0 (contact: moodmap)",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Cache-Control": "no-cache"
+    }
+
+    for url in OVERPASS_URLS:
+        try:
+            res = requests.post(url, data=query, timeout=22, headers=headers)
+            txt = (res.text or "").strip()
+
+            if not txt or "html" in txt.lower():
+                continue
+
+            data = res.json()
+            elements = data.get("elements", [])
+            if not elements:
+                continue
+
+            return elements[0]
+        except Exception as e:
+            print("⚠️ Overpass element fail:", url, "->", e)
+            continue
+
+    return None
+
+
+def _wiki_summary_from_title(title: str):
+    """
+    Wikipedia REST API summary for image + short extract.
+    Returns:
+      { ok, title, extract, thumbnail }
+    """
+    try:
+        if not title:
+            return None
+
+        # Wikipedia title typically comes like: en:Some_Page
+        # We handle: en:Title, Title
+        if ":" in title and title.split(":", 1)[0] in ["en", "hi", "mr"]:
+            lang, t = title.split(":", 1)
+        else:
+            lang, t = "en", title
+
+        t = t.strip().replace(" ", "_")
+
+        url = f"https://{lang}.wikipedia.org/api/rest_v1/page/summary/{t}"
+        headers = {
+            "User-Agent": "MoodMap/1.0 (contact: moodmap)"
+        }
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code != 200:
+            return None
+        data = r.json()
+        thumb = ""
+        try:
+            thumb = (data.get("thumbnail") or {}).get("source") or ""
+        except:
+            thumb = ""
+
+        return {
+            "ok": True,
+            "title": data.get("title") or "",
+            "extract": data.get("extract") or "",
+            "thumbnail": thumb
+        }
+    except Exception as e:
+        print("⚠️ wiki summary error:", e)
+        return None
+
+
+def _place_image_fallback(category: str):
+    """
+    Professional fallback images (free, stable).
+    Uses Unsplash source endpoint (no key) based on keyword.
+    """
+    cat = (category or "place").lower()
+
+    # choose keyword
+    key = "city"
+    if "cafe" in cat:
+        key = "cafe"
+    elif "restaurant" in cat:
+        key = "restaurant"
+    elif "fast_food" in cat or "fast" in cat:
+        key = "street+food"
+    elif "hospital" in cat:
+        key = "hospital"
+    elif "school" in cat or "college" in cat or "university" in cat:
+        key = "campus"
+    elif "gym" in cat:
+        key = "gym"
+    elif "park" in cat:
+        key = "park"
+    elif "hotel" in cat:
+        key = "hotel"
+    elif "mall" in cat or "shop" in cat:
+        key = "shopping"
+    elif "atm" in cat or "bank" in cat:
+        key = "bank"
+    elif "pharmacy" in cat:
+        key = "pharmacy"
+    elif "cinema" in cat or "theatre" in cat:
+        key = "cinema"
+
+    return f"https://source.unsplash.com/1200x600/?{key}"
+
+
+def _resolve_place_image(tags: dict, category: str):
+    """
+    Hybrid free:
+    1) OSM tag image=
+    2) wikimedia_commons
+    3) wikipedia summary thumbnail
+    4) fallback by category
+    Returns: (image_url, gallery_list, wiki_extract)
+    """
+    gallery = []
+    wiki_extract = ""
+
+    try:
+        if not tags:
+            tags = {}
+
+        # 1) direct image tag
+        img = (tags.get("image") or "").strip()
+        if img.startswith("http://") or img.startswith("https://"):
+            return img, gallery, wiki_extract
+
+        # 2) wikipedia tag
+        wiki = (tags.get("wikipedia") or "").strip()
+        if wiki:
+            ws = _wiki_summary_from_title(wiki)
+            if ws and ws.get("thumbnail"):
+                wiki_extract = ws.get("extract") or ""
+                return ws.get("thumbnail"), gallery, wiki_extract
+
+        # 3) if wikidata present, try wikipedia anyway (basic way: not all Q have direct thumbnail)
+        # We'll keep it simple because Wikidata API adds extra dependencies.
+        # If you want, later we can expand Q-id -> sitelinks -> thumbnail.
+    except:
+        pass
+
+    return _place_image_fallback(category), gallery, wiki_extract
+
+
+@app.route("/api/place_details", methods=["GET"])
+def api_place_details():
+    uid = current_user()
+    if not uid:
+        return jsonify({"ok": False, "message": "Login required"}), 403
+
+    osm_type = (request.args.get("type") or "").strip().lower()
+    osm_id = request.args.get("id")
+
+    lat = request.args.get("lat")
+    lon = request.args.get("lon")
+
+    # optional: name/category as fallback
+    fallback_name = (request.args.get("name") or "").strip()
+    fallback_category = (request.args.get("category") or "").strip()
+
+    # ================= cache =================
+    cache_key = ""
+    if osm_type and osm_id:
+        cache_key = f"{osm_type}/{osm_id}"
+        cached = _cache_get(cache_key)
+        if cached:
+            return jsonify({"ok": True, "place": cached})
+
+    element = None
+    tags = {}
+    pl_lat = None
+    pl_lon = None
+
+    # ================= Overpass element =================
+    if osm_type in ["node", "way", "relation"] and osm_id:
+        try:
+            element = _fetch_overpass_element(osm_type, int(osm_id))
+        except:
+            element = None
+
+        if element:
+            tags = element.get("tags", {}) or {}
+
+            # node has lat/lon
+            if element.get("lat") and element.get("lon"):
+                pl_lat = element.get("lat")
+                pl_lon = element.get("lon")
+            else:
+                # way/relation center
+                c = element.get("center") or {}
+                pl_lat = c.get("lat")
+                pl_lon = c.get("lon")
+
+    # ================= fallback coords =================
+    if pl_lat is None and lat is not None:
+        pl_lat = _safe_float(lat)
+    if pl_lon is None and lon is not None:
+        pl_lon = _safe_float(lon)
+
+    if pl_lat is None or pl_lon is None:
+        return jsonify({"ok": False, "message": "Missing coordinates"}), 400
+
+    # ================= reverse geocode =================
+    rev = _reverse_geocode_nominatim(pl_lat, pl_lon)
+    address = ""
+    if rev:
+        address = rev.get("display_name") or ""
+    else:
+        address = ""
+
+    category = _pick_category_from_tags(tags)
+    if not category and fallback_category:
+        category = fallback_category
+
+    name = (tags.get("name") or "").strip()
+    if not name:
+        name = fallback_name or ""
+    if not name:
+        name = (category or "place").replace("_", " ").title()
+
+    # ================= image =================
+    img_url, gallery, wiki_extract = _resolve_place_image(tags, category)
+
+    contact = _extract_contact(tags)
+
+    opening_hours = _clean_tag_value(tags.get("opening_hours") or "")
+    cuisine = _clean_tag_value(tags.get("cuisine") or "")
+    wheelchair = _clean_tag_value(tags.get("wheelchair") or "")
+    takeaway = _clean_tag_value(tags.get("takeaway") or "")
+    delivery = _clean_tag_value(tags.get("delivery") or "")
+    smoking = _clean_tag_value(tags.get("smoking") or "")
+    toilets = _clean_tag_value(tags.get("toilets") or "")
+
+    place_out = {
+        "id": f"{osm_type}/{osm_id}" if osm_type and osm_id else "",
+        "osm_type": osm_type or "",
+        "osm_id": int(osm_id) if osm_id else None,
+        "name": name,
+        "category": category,
+        "address": address,
+        "lat": float(pl_lat),
+        "lon": float(pl_lon),
+        "opening_hours": opening_hours,
+        "cuisine": cuisine,
+        "wheelchair": wheelchair,
+        "takeaway": takeaway,
+        "delivery": delivery,
+        "smoking": smoking,
+        "toilets": toilets,
+        "contact": contact,
+        "image": img_url,
+        "gallery": gallery,
+        "wiki_extract": wiki_extract,
+        "maps_url": _build_maps_url(pl_lat, pl_lon),
+        "tags": {
+            # safe subset (professional)
+            "brand": _clean_tag_value(tags.get("brand") or ""),
+            "operator": _clean_tag_value(tags.get("operator") or ""),
+            "level": _clean_tag_value(tags.get("level") or ""),
+            "addr:street": _clean_tag_value(tags.get("addr:street") or ""),
+            "addr:housenumber": _clean_tag_value(tags.get("addr:housenumber") or ""),
+            "addr:postcode": _clean_tag_value(tags.get("addr:postcode") or ""),
+            "addr:city": _clean_tag_value(tags.get("addr:city") or ""),
+            "addr:state": _clean_tag_value(tags.get("addr:state") or ""),
+        }
+    }
+
+    if cache_key:
+        _cache_set(cache_key, place_out)
+
+    return jsonify({"ok": True, "place": place_out})
 
 
 @app.route("/api/recommend", methods=["POST"])
@@ -1557,7 +1959,11 @@ def recommend():
             "opening_hours": t.get("opening_hours", None),
             "phone": t.get("phone", t.get("contact:phone", None)),
             "website": t.get("website", t.get("contact:website", None)),
-            "_score": score
+            "_score": score,
+
+            # ✅ NEW: needed for place details system
+            "osm_type": p.get("type", "node"),
+            "osm_id": osm_id
         })
 
     places.sort(key=lambda x: (-x["_score"], x["distance"]))

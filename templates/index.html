@@ -499,7 +499,7 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
 }
 @keyframes shimmer{to{transform:translateX(100%)}}
 
-/* ===== Modal (map left + details right) ===== */
+/* ===== Modal (PRO: Place Details with image) ===== */
 #modalBackdrop{
   position:fixed; inset:0; z-index:80;
   background:rgba(0,0,0,0.55);
@@ -515,7 +515,7 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
   top:58%;
   transform: translate(-50%,-50%) scale(0.96);
   width:min(980px, 92vw);
-  max-height:82vh;
+  max-height:86vh;
   overflow:hidden;
   border-radius:22px;
   z-index:81;
@@ -533,10 +533,67 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
   transform: translate(-50%,-50%) scale(1);
 }
 
-.modalInner{padding:18px}
-.modalTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
-.modalTitle{font-weight:1000;font-size:18px;margin:0}
-.modalMeta{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;color:rgba(255,255,255,0.72);font-size:12px}
+.modalInner{padding:0}
+
+/* ✅ new professional header image */
+.placeHero{
+  height:210px;
+  width:100%;
+  position:relative;
+  overflow:hidden;
+  border-bottom:1px solid rgba(255,255,255,0.10);
+}
+.placeHero img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  filter:saturate(1.1) contrast(1.05);
+}
+.placeHero::after{
+  content:"";
+  position:absolute; inset:0;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.68)),
+    radial-gradient(circle at 20% 20%, rgba(167,139,250,0.25), transparent 55%),
+    radial-gradient(circle at 80% 70%, rgba(34,211,238,0.22), transparent 55%);
+}
+
+.placeHeader{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  padding:16px 18px;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-end;
+}
+.placeTitleWrap{min-width:0}
+.placeTitle{
+  margin:0;
+  font-weight:1000;
+  letter-spacing:-0.2px;
+  font-size:18px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.placeSub{
+  margin-top:8px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  font-size:12px;
+  color:rgba(255,255,255,0.78);
+}
+.placeActionsTop{
+  display:flex;
+  gap:10px;
+}
+
+.modalContent{
+  padding:16px 18px 18px;
+}
 
 .modalBody{
   display:grid;
@@ -573,6 +630,37 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
   font-size:13px;
   line-height:1.55;
   color:rgba(255,255,255,0.72);
+}
+
+.detailRow{
+  margin-top:10px;
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  font-size:13px;
+  color:rgba(255,255,255,0.75);
+}
+.detailIcon{
+  width:26px;height:26px;border-radius:10px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:rgba(0,0,0,0.22);
+  display:flex;align-items:center;justify-content:center;
+}
+
+.chips{
+  margin-top:12px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.chip{
+  font-size:12px;
+  font-weight:900;
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.12);
+  background:rgba(0,0,0,0.18);
+  color:rgba(255,255,255,0.88);
 }
 
 .modalActions{
@@ -646,6 +734,7 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
 @media (max-width: 900px){
   .modalBody{grid-template-columns:1fr}
   .modalMap{height:300px}
+  .placeHero{height:180px}
 }
 
 @media (max-width: 800px){
