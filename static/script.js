@@ -254,7 +254,7 @@ function reachTimes(distanceKm) {
 }
 
 /* =========================================================
-  ✅ NEW: Mood explain helper
+  ✅ Mood explain helper
   ========================================================= */
 
 function txt(s) {
@@ -619,6 +619,10 @@ function disableFocusTrap() {
 function openModalShell() {
   if (!backdrop || !modal) return;
 
+  // ✅ reset any stuck state (prevents click-block bug)
+  backdrop.classList.remove("active");
+  modal.classList.remove("active");
+
   lastFocusedEl = document.activeElement;
 
   modalOpen = true;
@@ -722,11 +726,16 @@ function showModalLoader(place) {
     </div>
   `;
 
-  document.getElementById("modalCloseBtn").onclick = closeModal;
-  document.getElementById("modalPinBtn").onclick = async () => {
-    await toggleFav(place);
-    document.getElementById("modalPinBtn").innerText = isFav(place) ? "★" : "☆";
-  };
+  const closeBtn = document.getElementById("modalCloseBtn");
+  if (closeBtn) closeBtn.onclick = closeModal;
+
+  const pinBtn = document.getElementById("modalPinBtn");
+  if (pinBtn) {
+    pinBtn.onclick = async () => {
+      await toggleFav(place);
+      pinBtn.innerText = isFav(place) ? "★" : "☆";
+    };
+  }
 
   // ✅ autofocus close btn
   setTimeout(() => {
@@ -1228,12 +1237,18 @@ setInterval(() => {
   if (lastPlaces.length) renderPlacesFiltered();
 }, 30000);
 
-document.getElementById("mood").addEventListener("change", () => {
-  const mood = document.getElementById("mood").value;
-  applyMoodTheme(mood);
-  lastPlaces = [];
-  document.getElementById("results").innerHTML = `<div style="opacity:.65; padding:50px 0; text-align:center;">Click <b>Find nearby places</b> to load new recommendations.</div>`;
-});
+const moodSelect = document.getElementById("mood");
+if (moodSelect) {
+  moodSelect.addEventListener("change", () => {
+    const mood = moodSelect.value;
+    applyMoodTheme(mood);
+    lastPlaces = [];
+    const results = document.getElementById("results");
+    if (results) {
+      results.innerHTML = `<div style="opacity:.65; padding:50px 0; text-align:center;">Click <b>Find nearby places</b> to load new recommendations.</div>`;
+    }
+  });
+}
 
 /* ===================== PROFILE + REQUESTS ===================== */
 
@@ -1318,7 +1333,8 @@ async function copyTextSmart(text) {
   }
 })();
 
-/* follow requests modal */
+/* ===================== FOLLOW REQUESTS MODAL (FIXED PANEL) ===================== */
+
 const reqBtn = document.getElementById("reqBtn");
 const reqCount = document.getElementById("reqCount");
 const reqBackdrop = document.getElementById("reqBackdrop");
@@ -1326,14 +1342,22 @@ const reqModal = document.getElementById("reqModal");
 const reqCloseBtn = document.getElementById("reqCloseBtn");
 const reqList = document.getElementById("reqList");
 
+/* ✅ Fix: stop modal click from closing */
+if (reqModal) {
+  reqModal.addEventListener("click", (e) => e.stopPropagation());
+}
+
+/* ✅ Better panel open/close */
 function openReqModal() {
-  reqBackdrop.classList.add("active");
-  reqModal.classList.add("active");
+  if (reqBackdrop) reqBackdrop.classList.add("active");
+  if (reqModal) reqModal.classList.add("active");
 }
+
 function closeReqModal() {
-  reqBackdrop.classList.remove("active");
-  reqModal.classList.remove("active");
+  if (reqBackdrop) reqBackdrop.classList.remove("active");
+  if (reqModal) reqModal.classList.remove("active");
 }
+
 if (reqBackdrop) reqBackdrop.addEventListener("click", closeReqModal);
 if (reqCloseBtn) reqCloseBtn.onclick = closeReqModal;
 
@@ -1349,7 +1373,7 @@ async function fetchRequests() {
         reqBtn.style.display = "inline-flex";
         reqCount.innerText = `(${n})`;
       } else {
-        reqBtn.style.display = "none";
+        reqBtn.style.display = "inline-flex";   // ✅ always show panel button
         reqCount.innerText = "";
       }
     }
@@ -1357,8 +1381,21 @@ async function fetchRequests() {
     if (!reqList) return;
 
     reqList.innerHTML = "";
+
     if (!n) {
-      reqList.innerHTML = `<div style="opacity:.65;font-size:13px;padding:18px;">No pending requests.</div>`;
+      reqList.innerHTML = `
+        <div style="
+          padding:18px;
+          border-radius:18px;
+          border:1px solid rgba(255,255,255,0.12);
+          background: rgba(0,0,0,0.22);
+          font-size:13px;
+          opacity:.80;
+          text-align:center;
+        ">
+          ✅ No pending requests right now.
+        </div>
+      `;
       return;
     }
 
@@ -1401,7 +1438,9 @@ async function fetchRequests() {
       reqList.appendChild(div);
     });
 
-  } catch { }
+  } catch (e) {
+    console.log("❌ fetchRequests error:", e);
+  }
 }
 
 if (reqBtn) {
@@ -1451,4 +1490,24 @@ function stopFollowRequestPolling() {
   });
 
   window.addEventListener("beforeunload", stopFollowRequestPolling);
+})();
+
+/* =========================================================
+   ✅ FINAL CLICK-BLOCK FIX (IMPORTANT)
+   sometimes backdrop gets stuck due to CSS states
+   this makes sure cards are always clickable
+   ========================================================= */
+(function hardUnblockClickLayer() {
+  setInterval(() => {
+    const bd = document.getElementById("modalBackdrop");
+    const md = document.getElementById("modal");
+    if (!bd || !md) return;
+
+    const modalIsActive = md.classList.contains("active");
+    const bdIsActive = bd.classList.contains("active");
+
+    if (!modalIsActive && bdIsActive) {
+      bd.classList.remove("active");
+    }
+  }, 1500);
 })();

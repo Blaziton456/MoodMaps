@@ -546,30 +546,112 @@ button:disabled{
 @keyframes shimmer{to{transform:translateX(100%)}}
 
 /* ===========================
-   ✅ Modal Smooth Animations
+   ✅ Premium Modal Blur + Bounce (places modal)
    =========================== */
-
-/* Backdrop smooth fade */
-#modalBackdrop {
-  transition: opacity 220ms ease;
+#modalBackdrop{
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  opacity: 0;
+  pointer-events: none;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: opacity 240ms cubic-bezier(.2,1,.2,1);
 }
+#modalBackdrop.active{
+  opacity: 1;
+  pointer-events: auto;
+}
+#modal{
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+  z-index: 9999;
 
-/* Modal container smooth animation */
-#modal {
-  transition: transform 220ms ease, opacity 220ms ease;
+  width: min(980px, 92vw);
+  max-height: 86vh;
+  overflow: auto;
+
+  border-radius: 26px;
+  border: 1px solid rgba(255,255,255,0.18);
+
+  background: linear-gradient(180deg, rgba(20,22,35,0.82), rgba(0,0,0,0.72));
+  box-shadow:
+    0 70px 200px rgba(0,0,0,0.82),
+    0 1px 0 rgba(255,255,255,0.05) inset;
+
+  opacity: 0;
+  pointer-events: none;
+
+  transition: transform 260ms cubic-bezier(.2,1.05,.2,1),
+              opacity 260ms cubic-bezier(.2,1.05,.2,1);
+
   will-change: transform, opacity;
 }
-
-/* When opening */
-#modal.modalAnimatingIn {
+#modal.active{
+  opacity: 1;
+  pointer-events: auto;
+}
+#modal.modalAnimatingIn{
   opacity: 0;
-  transform: translateY(12px) scale(0.985);
+  transform: translate(-50%,-50%) translateY(20px) scale(0.94);
+}
+#modal.active:not(.modalAnimatingIn):not(.modalAnimatingOut){
+  transform: translate(-50%,-50%) translateY(0) scale(1);
+}
+#modal.modalAnimatingOut{
+  opacity: 0;
+  transform: translate(-50%,-50%) translateY(18px) scale(0.965);
+}
+#modal::-webkit-scrollbar{ width: 10px; }
+#modal::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,0.12);
+  border-radius: 999px;
+}
+#modal::-webkit-scrollbar-track{
+  background: transparent;
 }
 
-/* When closing */
-#modal.modalAnimatingOut {
+/* ===========================================================
+   ✅ NEW: Follow Requests Panel (Premium + DOES NOT block clicks)
+   =========================================================== */
+#reqBackdrop{
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+
   opacity: 0;
-  transform: translateY(12px) scale(0.985);
+  pointer-events: none;
+
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  transition: opacity 240ms cubic-bezier(.2,1,.2,1);
+}
+
+#reqBackdrop.active{
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#reqModal{
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%) translateY(16px) scale(0.96);
+  z-index: 10021;
+
+  width: min(700px, 92vw);
+  max-height: 82vh;
+  overflow: auto;
+
+  border-radius: 26px;
+  border: 1px solid rgba(255,255,255,0.18);
+
+  background: linear-gradient(180deg, rgba(25,30,45,0.92), rgba(0,0,0,0.78));
 }
 
 </style>
@@ -590,7 +672,6 @@ button:disabled{
       <div class="userbox">
         <div class="welcomeChip">Welcome, <b>{{username}}</b></div>
 
-        <!-- ✅ Search users -->
         <div class="searchWrap" id="searchWrap">
           <span class="searchIcon">🔍</span>
           <input id="userSearch" class="userSearch" placeholder="Search users…" autocomplete="off"/>
@@ -630,12 +711,10 @@ button:disabled{
 
         <input type="text" id="searchInput" placeholder="Search places / category..." />
 
-        <!-- ✅ location ready fix -->
         <button id="findBtn" disabled>Getting location…</button>
       </div>
     </div>
 
-    <!-- ✅ Saved grouped -->
     <div id="savedWrap"></div>
 
     <div id="results" class="results"></div>
