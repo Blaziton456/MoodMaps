@@ -11,14 +11,21 @@
 :root{
   --accent:#a78bfa;
   --accent2:#22d3ee;
-  --accent-soft:rgba(167,139,250,0.30);
+  --accent-soft:rgba(167,139,250,0.26);
+
   --text:#e5e7eb;
+  --muted:rgba(255,255,255,0.66);
 
   --bg1:#0ea5e9;
-  --bg2:#0f172a;
+  --bg2:#0b1020;
   --bg3:#a78bfa;
 
   --particle:200,230,255;
+
+  --glass:rgba(255,255,255,0.06);
+  --glass2:rgba(255,255,255,0.04);
+  --border:rgba(255,255,255,0.12);
+  --border2:rgba(255,255,255,0.18);
 }
 
 *{box-sizing:border-box}
@@ -28,19 +35,20 @@ body{
   margin:0;
   font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
   color:var(--text);
-  background:#05070f;
+  background:#000;
   overflow-x:hidden;
 }
 
+/* ✅ Pure black professional gradient */
 .moodGradient{
   position:fixed;
   inset:0;
   z-index:-10;
   background:
-    radial-gradient(circle at 12% 18%, var(--bg1), transparent 55%),
-    radial-gradient(circle at 80% 70%, var(--bg2), transparent 62%),
-    radial-gradient(circle at 55% 95%, var(--bg3), transparent 58%),
-    #05070f;
+    radial-gradient(circle at 15% 15%, rgba(96,165,250,0.22), transparent 56%),
+    radial-gradient(circle at 82% 68%, rgba(34,211,238,0.18), transparent 60%),
+    radial-gradient(circle at 55% 92%, rgba(167,139,250,0.18), transparent 60%),
+    #000;
   transition: background 1200ms cubic-bezier(.2,1,.2,1);
 }
 
@@ -49,7 +57,7 @@ body{
   inset:0;
   z-index:-8;
   pointer-events:none;
-  opacity:0.55;
+  opacity:0.50;
   transition: opacity .4s ease;
 }
 
@@ -58,17 +66,18 @@ body{
   inset:0;
   z-index:-7;
   pointer-events:none;
-  opacity:0.05;
+  opacity:0.06;
   background-image:url("https://grainy-gradients.vercel.app/noise.svg");
   mix-blend-mode: overlay;
 }
 
 .app{
-  max-width:1160px;
+  max-width:1180px;
   margin:auto;
-  padding:46px 28px 110px;
+  padding:46px 26px 130px;
 }
 
+/* ================= Header ================= */
 header{
   display:flex;
   justify-content:space-between;
@@ -78,18 +87,23 @@ header{
   flex-wrap:wrap;
 }
 
+.brand{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
 .title{
-  font-size:30px;
-  font-weight:900;
-  letter-spacing:-0.4px;
+  font-size:32px;
+  font-weight:1000;
+  letter-spacing:-0.6px;
 }
 .subtitle{
-  color:rgba(255,255,255,0.60);
+  color:rgba(255,255,255,0.62);
   font-size:13px;
-  margin-top:6px;
+  margin-top:0px;
 }
 
-/* ✅ Right top actions */
+/* ✅ right actions */
 .userbox{
   display:flex;
   gap:10px;
@@ -101,21 +115,54 @@ header{
 .welcomeChip{
   padding:10px 14px;
   border-radius:999px;
-  border:1px solid rgba(255,255,255,0.14);
-  background:rgba(0,0,0,0.22);
+  border:1px solid var(--border);
+  background: rgba(255,255,255,0.05);
   font-size:13px;
-  color:rgba(255,255,255,0.86);
+  color:rgba(255,255,255,0.88);
 }
 
-/* ✅ Search users */
+/* ================= Top buttons ================= */
+.topBtn{
+  color:white;
+  text-decoration:none;
+  font-weight:1000;
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,0.05);
+  transition: transform .16s ease, box-shadow .16s ease, border .16s ease;
+  cursor:pointer;
+}
+.topBtn:hover{
+  transform: translateY(-2px);
+  border-color: var(--border2);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.60);
+}
+
+.logoutBtn{
+  color:white;
+  text-decoration:none;
+  font-weight:1000;
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,0.14);
+  background:rgba(239,68,68,0.14);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.logoutBtn:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 18px 60px rgba(239,68,68,0.18);
+}
+
+/* ================= Search Users ================= */
 .searchWrap{
   position:relative;
 }
 
 .userSearch{
-  width:260px;
-  background:rgba(0,0,0,0.30);
-  border:1px solid rgba(255,255,255,0.14);
+  width:270px;
+  background: rgba(255,255,255,0.05);
+  border:1px solid var(--border);
   color:var(--text);
   padding:10px 12px 10px 36px;
   border-radius:999px;
@@ -125,7 +172,7 @@ header{
 }
 .userSearch:focus{
   border-color: rgba(255,255,255,0.26);
-  box-shadow: 0 25px 80px rgba(167,139,250,0.10);
+  box-shadow: 0 25px 90px rgba(167,139,250,0.12);
 }
 
 .searchIcon{
@@ -142,13 +189,13 @@ header{
   position:absolute;
   right:0;
   top:46px;
-  width:360px;
-  max-width:86vw;
-  border-radius:18px;
+  width:380px;
+  max-width:90vw;
+  border-radius:20px;
   border:1px solid rgba(255,255,255,0.16);
-  background: linear-gradient(180deg, rgba(20,25,40,0.94), rgba(10,12,20,0.82));
+  background: linear-gradient(180deg, rgba(25,30,45,0.94), rgba(10,12,20,0.86));
   backdrop-filter: blur(18px);
-  box-shadow: 0 50px 150px rgba(0,0,0,0.75);
+  box-shadow: 0 50px 150px rgba(0,0,0,0.80);
   overflow:hidden;
   display:none;
   z-index:200;
@@ -170,7 +217,6 @@ header{
   font-size:12px;
   opacity:.65;
 }
-
 .dropList{
   max-height:340px;
   overflow:auto;
@@ -184,9 +230,7 @@ header{
   cursor:pointer;
   transition: background .15s ease;
 }
-.dropItem:hover{
-  background: rgba(255,255,255,0.06);
-}
+.dropItem:hover{ background: rgba(255,255,255,0.06); }
 .dropLeft{
   display:flex;
   gap:12px;
@@ -220,8 +264,8 @@ header{
   border-radius:999px;
   border:1px solid rgba(255,255,255,0.12);
   background: rgba(0,0,0,0.22);
-  font-weight:900;
-  opacity:.9;
+  font-weight:1000;
+  opacity:.92;
 }
 .emptyDrop{
   padding:16px;
@@ -229,40 +273,17 @@ header{
   opacity:.65;
 }
 
-.topBtn{
-  color:white;
-  text-decoration:none;
-  font-weight:1000;
-  padding:10px 14px;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,0.14);
-  background:rgba(0,0,0,0.25);
-  transition: transform .16s ease, box-shadow .16s ease;
-  cursor:pointer;
-}
-.topBtn:hover{
-  transform: translateY(-2px);
-  box-shadow: 0 18px 60px rgba(167,139,250,0.12);
-}
-.logoutBtn{
-  color:white;
-  text-decoration:none;
-  font-weight:1000;
-  padding:10px 14px;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,0.14);
-  background:rgba(0,0,0,0.25);
-  transition: transform .16s ease;
-}
-.logoutBtn:hover{transform: translateY(-2px)}
-
+/* ================= Panel ================= */
 .panel{
   margin-top:18px;
-  border-radius:22px;
+  border-radius:24px;
   padding:18px;
   border:1px solid rgba(255,255,255,0.14);
-  background:linear-gradient(180deg,rgba(255,255,255,0.11),rgba(255,255,255,0.03));
-  backdrop-filter: blur(16px);
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 30px 120px rgba(0,0,0,0.40),
+    0 1px 0 rgba(255,255,255,0.05) inset;
 }
 
 .controls{
@@ -273,16 +294,16 @@ header{
 }
 
 select, input[type="text"]{
-  background:rgba(0,0,0,0.30);
-  border:1px solid rgba(255,255,255,0.14);
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.12);
   color:var(--text);
   padding:12px 14px;
-  border-radius:14px;
+  border-radius:16px;
   font-size:14px;
   outline:none;
 }
 
-input[type="text"]{width:320px}
+input[type="text"]{width:340px}
 
 button{
   margin-left:auto;
@@ -290,16 +311,21 @@ button{
   border:none;
   color:white;
   padding:12px 18px;
-  border-radius:14px;
+  border-radius:16px;
   font-weight:1000;
   cursor:pointer;
-  transition: transform .16s ease, box-shadow .16s ease, background .7s ease;
+  transition: transform .16s ease, box-shadow .16s ease;
 }
 button:hover{
   transform:translateY(-2px);
-  box-shadow: 0 18px 60px var(--accent-soft);
+  box-shadow: 0 18px 70px var(--accent-soft);
 }
-button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
+button:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+  box-shadow:none;
+  transform:none;
+}
 
 /* Saved Sections */
 .savedSection{ margin-top:22px; }
@@ -323,17 +349,22 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
 .carousel::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:999px}
 
 .pinCard{
-  min-width:240px;
+  min-width:250px;
   scroll-snap-align:start;
-  border-radius:18px;
+  border-radius:20px;
   padding:14px;
   border:1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.05);
   backdrop-filter: blur(16px);
   cursor:pointer;
+  transition: transform .18s ease, border .18s ease;
+}
+.pinCard:hover{
+  transform: translateY(-3px);
+  border-color: rgba(255,255,255,0.24);
 }
 .pinCardTitle{font-weight:1000;font-size:13px}
-.pinCardMeta{margin-top:8px;font-size:12px;color:rgba(255,255,255,0.65)}
+.pinCardMeta{margin-top:8px;font-size:12px;color:rgba(255,255,255,0.62)}
 
 /* results */
 .results{
@@ -343,19 +374,18 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
   margin-top:22px;
 }
 
-/* Glass + Glow cards */
 .card{
   position:relative;
   overflow:hidden;
-  border-radius:22px;
+  border-radius:24px;
   padding:18px 18px 16px;
   border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.06);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   box-shadow:
-    0 18px 70px rgba(0,0,0,0.30),
-    0 1px 0 rgba(255,255,255,0.05) inset;
+    0 22px 80px rgba(0,0,0,0.40),
+    0 1px 0 rgba(255,255,255,0.04) inset;
   cursor:pointer;
   min-height:190px;
   transition: transform .22s ease, box-shadow .22s ease, border .22s ease;
@@ -371,20 +401,26 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
   background:
     radial-gradient(600px circle at var(--mx,50%) var(--my,50%),
     rgba(255,255,255,0.18),
-    rgba(167,139,250,0.12),
-    transparent 60%);
+    rgba(167,139,250,0.10),
+    transparent 62%);
 }
 .card:hover::before{opacity:1}
 .card:hover{
   transform: translateY(-7px);
   border-color: rgba(255,255,255,0.26);
   box-shadow:
-    0 30px 95px rgba(0,0,0,0.35),
-    0 0 50px rgba(167,139,250,0.12),
-    0 1px 0 rgba(255,255,255,0.07) inset;
+    0 38px 120px rgba(0,0,0,0.46),
+    0 0 70px rgba(167,139,250,0.10),
+    0 1px 0 rgba(255,255,255,0.06) inset;
 }
 
-.cardTitle{margin:0;font-size:15px;font-weight:1000;padding-right:92px;line-height:1.35}
+.cardTitle{
+  margin:0;
+  font-size:15px;
+  font-weight:1000;
+  padding-right:92px;
+  line-height:1.35
+}
 
 .badgeRow{
   margin-top:10px;
@@ -402,7 +438,7 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
   padding:7px 11px;
   border-radius:999px;
   border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.22);
+  background: rgba(0,0,0,0.30);
 }
 .kmDot{
   width:9px;height:9px;border-radius:50%;
@@ -411,7 +447,7 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
 }
 
 .badge{
-  background: rgba(0,0,0,0.18);
+  background: rgba(0,0,0,0.26);
   border: 1px solid rgba(255,255,255,0.12);
   padding:7px 12px;
   border-radius:999px;
@@ -422,9 +458,9 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
   border-radius:999px;
   padding:7px 12px;
   font-size:12px;
-  font-weight:900;
+  font-weight:1000;
   border:1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.18);
+  background: rgba(0,0,0,0.26);
   display:inline-flex;
   align-items:center;
   gap:8px;
@@ -433,7 +469,6 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
 .openDot{background:#22c55e;box-shadow:0 0 14px rgba(34,197,94,0.55)}
 .closedDot{background:#ef4444;box-shadow:0 0 14px rgba(239,68,68,0.55)}
 
-/* AI explain text inside card */
 .aiLine{
   margin-top:10px;
   font-size:12.5px;
@@ -447,43 +482,54 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
   border-radius:999px;
   padding:7px 12px;
   border:1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.18);
+  background: rgba(0,0,0,0.26);
   font-size:12px;
   font-weight:1000;
-  color:rgba(255,255,255,0.9);
+  color:rgba(255,255,255,0.90);
   margin-top:12px;
 }
 .aiDot{
   width:9px;height:9px;border-radius:50%;
   background: linear-gradient(135deg,var(--accent),var(--accent2));
-  box-shadow:0 0 18px rgba(167,139,250,0.28);
+  box-shadow:0 0 18px rgba(167,139,250,0.24);
 }
 
-/* reach time row */
 .reachRow{
   margin-top:10px;
   display:flex;
   gap:10px;
   flex-wrap:wrap;
   font-size:12px;
-  color:rgba(255,255,255,0.65);
+  color:rgba(255,255,255,0.64);
 }
 
-.actions{position:absolute;right:14px;top:14px;display:flex;gap:10px;}
+.actions{
+  position:absolute;
+  right:14px;
+  top:14px;
+  display:flex;
+  gap:10px;
+}
+
 .iconBtn{
   width:36px;height:36px;border-radius:14px;
   border:1px solid rgba(255,255,255,0.14);
-  background:rgba(0,0,0,0.22);
+  background:rgba(0,0,0,0.32);
   color:white;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;
   font-weight:1000;
+  transition: transform .16s ease, border .16s ease;
+}
+.iconBtn:hover{
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.24);
 }
 .iconBtn.pinned{border-color: var(--accent)}
 
 /* skeleton */
 .skeleton{
-  border-radius:22px;
+  border-radius:24px;
   border:1px solid rgba(255,255,255,0.12);
   background:rgba(255,255,255,0.05);
   height:190px;
@@ -499,11 +545,11 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
 }
 @keyframes shimmer{to{transform:translateX(100%)}}
 
-/* ===== Modal (PRO: Place Details with image) ===== */
+/* ================= Modal ================= */
 #modalBackdrop{
   position:fixed; inset:0; z-index:80;
-  background:rgba(0,0,0,0.55);
-  backdrop-filter: blur(8px);
+  background:rgba(0,0,0,0.62);
+  backdrop-filter: blur(10px);
   opacity:0; pointer-events:none;
   transition: opacity .22s ease;
 }
@@ -512,17 +558,17 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
 #modal{
   position:fixed;
   left:50%;
-  top:58%;
-  transform: translate(-50%,-50%) scale(0.96);
-  width:min(980px, 92vw);
-  max-height:86vh;
+  top:52%;
+  transform: translate(-50%,-50%) scale(0.98);
+  width:min(1020px, 94vw);
+  max-height:90vh;
   overflow:hidden;
-  border-radius:22px;
+  border-radius:24px;
   z-index:81;
   border:1px solid rgba(255,255,255,0.18);
-  background: linear-gradient(180deg, rgba(20,25,40,0.92), rgba(10,12,20,0.78));
-  backdrop-filter: blur(20px);
-  box-shadow: 0 60px 160px rgba(0,0,0,0.75);
+  background: linear-gradient(180deg, rgba(20,25,40,0.90), rgba(10,12,20,0.82));
+  backdrop-filter: blur(22px);
+  box-shadow: 0 70px 190px rgba(0,0,0,0.82);
   opacity:0;
   pointer-events:none;
   transition: opacity .22s ease, transform .22s ease;
@@ -535,132 +581,40 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
 
 .modalInner{padding:0}
 
-/* ✅ new professional header image */
-.placeHero{
-  height:210px;
-  width:100%;
-  position:relative;
-  overflow:hidden;
-  border-bottom:1px solid rgba(255,255,255,0.10);
-}
-.placeHero img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  filter:saturate(1.1) contrast(1.05);
-}
-.placeHero::after{
-  content:"";
-  position:absolute; inset:0;
-  background:
-    linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.68)),
-    radial-gradient(circle at 20% 20%, rgba(167,139,250,0.25), transparent 55%),
-    radial-gradient(circle at 80% 70%, rgba(34,211,238,0.22), transparent 55%);
-}
-
-.placeHeader{
-  position:absolute;
-  left:0; right:0; bottom:0;
-  padding:16px 18px;
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  align-items:flex-end;
-}
-.placeTitleWrap{min-width:0}
-.placeTitle{
-  margin:0;
-  font-weight:1000;
-  letter-spacing:-0.2px;
-  font-size:18px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.placeSub{
-  margin-top:8px;
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  align-items:center;
-  font-size:12px;
-  color:rgba(255,255,255,0.78);
-}
-.placeActionsTop{
-  display:flex;
-  gap:10px;
-}
-
-.modalContent{
-  padding:16px 18px 18px;
-}
-
 .modalBody{
   display:grid;
   grid-template-columns: 1.15fr 0.85fr;
   gap:16px;
-  margin-top:14px;
 }
 
 .modalMap{
   width:100%;
   height:380px;
-  border-radius:18px;
+  border-radius:20px;
   overflow:hidden;
   border:1px solid rgba(255,255,255,0.14)
 }
 .modalMap iframe{width:100%;height:100%;border:0}
 
 .detailsBox{
-  border-radius:18px;
+  border-radius:20px;
   border:1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.05);
   padding:14px;
   min-height: 220px;
 }
 
 .detailsTitle{
-  font-weight:900;
+  font-weight:1000;
   font-size:14px;
   margin:0 0 12px 0;
-  color:rgba(255,255,255,0.9);
+  color:rgba(255,255,255,0.90);
 }
 
 .detailsText{
   font-size:13px;
   line-height:1.55;
   color:rgba(255,255,255,0.72);
-}
-
-.detailRow{
-  margin-top:10px;
-  display:flex;
-  gap:10px;
-  align-items:flex-start;
-  font-size:13px;
-  color:rgba(255,255,255,0.75);
-}
-.detailIcon{
-  width:26px;height:26px;border-radius:10px;
-  border:1px solid rgba(255,255,255,0.14);
-  background:rgba(0,0,0,0.22);
-  display:flex;align-items:center;justify-content:center;
-}
-
-.chips{
-  margin-top:12px;
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-}
-.chip{
-  font-size:12px;
-  font-weight:900;
-  padding:8px 12px;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,0.12);
-  background:rgba(0,0,0,0.18);
-  color:rgba(255,255,255,0.88);
 }
 
 .modalActions{
@@ -675,20 +629,25 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
   gap:10px;
   align-items:center;
   padding:10px 14px;
-  border-radius:14px;
+  border-radius:16px;
   border:1px solid rgba(255,255,255,0.16);
-  background: rgba(0,0,0,0.30);
+  background: rgba(0,0,0,0.32);
   color:white;
   text-decoration:none;
   font-weight:1000;
   font-size:13px;
+  transition: transform .16s ease, border .16s ease;
+}
+.linkBtn:hover{
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.26);
 }
 
-/* ✅ Follow requests modal */
+/* ================= Follow Requests Modal ================= */
 #reqBackdrop{
   position:fixed; inset:0; z-index:120;
-  background:rgba(0,0,0,0.55);
-  backdrop-filter: blur(8px);
+  background:rgba(0,0,0,0.62);
+  backdrop-filter: blur(10px);
   opacity:0; pointer-events:none;
   transition: opacity .2s ease;
 }
@@ -698,50 +657,68 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
   position:fixed; left:50%; top:55%; z-index:121;
   transform:translate(-50%,-50%) scale(.96);
   width:min(560px,92vw);
-  border-radius:22px;
+  border-radius:24px;
   border:1px solid rgba(255,255,255,0.18);
-  background: linear-gradient(180deg, rgba(20,25,40,0.92), rgba(10,12,20,0.78));
-  backdrop-filter: blur(20px);
-  box-shadow: 0 60px 160px rgba(0,0,0,0.75);
+  background: linear-gradient(180deg, rgba(20,25,40,0.92), rgba(10,12,20,0.82));
+  backdrop-filter: blur(22px);
+  box-shadow: 0 70px 190px rgba(0,0,0,0.82);
   opacity:0; pointer-events:none;
   transition: opacity .2s ease, transform .2s ease;
 }
-#reqModal.active{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+#reqModal.active{
+  opacity:1;
+  pointer-events:auto;
+  transform:translate(-50%,-50%) scale(1)
+}
+
 .reqInner{padding:18px}
 .reqTitle{font-size:16px;font-weight:1000;margin:0}
 .reqSub{margin-top:8px;font-size:13px;color:rgba(255,255,255,0.70)}
-.reqList{margin-top:14px;display:flex;flex-direction:column;gap:12px;max-height:50vh;overflow:auto;padding-right:4px}
+.reqList{
+  margin-top:14px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  max-height:50vh;
+  overflow:auto;
+  padding-right:4px
+}
 .reqItem{
-  padding:14px;border-radius:18px;
+  padding:14px;border-radius:20px;
   border:1px solid rgba(255,255,255,0.14);
-  background:rgba(255,255,255,0.06);
+  background:rgba(255,255,255,0.05);
   display:flex;justify-content:space-between;gap:12px;align-items:center;
 }
 .reqUser{font-weight:1000}
 .reqMeta{font-size:12px;color:rgba(255,255,255,0.62);margin-top:6px}
 .reqBtns{display:flex;gap:10px}
+
 .smallBtn{
-  padding:10px 12px;border-radius:14px;
+  padding:10px 12px;
+  border-radius:16px;
   border:1px solid rgba(255,255,255,0.16);
-  background:rgba(0,0,0,0.24);
-  color:white;cursor:pointer;font-weight:1000;
+  background:rgba(0,0,0,0.28);
+  color:white;
+  cursor:pointer;
+  font-weight:1000;
+  transition: transform .16s ease;
 }
 .smallBtn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none}
-.smallBtn.danger{background:rgba(239,68,68,0.22);border-color:rgba(239,68,68,0.30)}
+.smallBtn.danger{background:rgba(239,68,68,0.18);border-color:rgba(239,68,68,0.28)}
 .smallBtn:hover{transform:translateY(-2px)}
 .reqClose{margin-left:auto}
 
+/* responsive */
 @media (max-width: 900px){
   .modalBody{grid-template-columns:1fr}
   .modalMap{height:300px}
-  .placeHero{height:180px}
 }
 
 @media (max-width: 800px){
   button{margin-left:0}
   input[type="text"]{width:100%}
   .controls{width:100%}
-  .userSearch{width:86vw; max-width:320px;}
+  .userSearch{width:86vw; max-width:330px;}
 }
 </style>
 </head>
@@ -753,7 +730,7 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
 
   <div class="app">
     <header>
-      <div>
+      <div class="brand">
         <div class="title">MoodMap</div>
         <div class="subtitle">Context-aware place discovery</div>
       </div>
@@ -761,7 +738,7 @@ button:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}
       <div class="userbox">
         <div class="welcomeChip">Welcome, <b>{{username}}</b></div>
 
-        <!-- ✅ Search users (TOP HEADER) -->
+        <!-- ✅ Search users -->
         <div class="searchWrap" id="searchWrap">
           <span class="searchIcon">🔍</span>
           <input id="userSearch" class="userSearch" placeholder="Search users…" autocomplete="off"/>
