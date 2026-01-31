@@ -39,25 +39,75 @@ body{
   overflow-x:hidden;
 }
 
-/* ✅ Pure black professional gradient */
-.moodGradient{
+/* ===========================================================
+   ✅ FULL MOOD BACKGROUND SCENES (not just tint)
+   =========================================================== */
+
+.moodScene{
   position:fixed;
   inset:0;
-  z-index:-10;
-  background:
-    radial-gradient(circle at 15% 15%, rgba(96,165,250,0.22), transparent 56%),
-    radial-gradient(circle at 82% 68%, rgba(34,211,238,0.18), transparent 60%),
-    radial-gradient(circle at 55% 92%, rgba(167,139,250,0.18), transparent 60%),
-    #000;
-  transition: background 1200ms cubic-bezier(.2,1,.2,1);
+  z-index:-11;
+  pointer-events:none;
+  opacity:1;
+  transition: opacity 900ms cubic-bezier(.2,1,.2,1);
 }
 
+.sceneLayer{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  transition: opacity 950ms cubic-bezier(.2,1,.2,1);
+}
+
+/* WORK */
+.scene-work{
+  background:
+    radial-gradient(circle at 18% 18%, rgba(56,189,248,0.22), transparent 55%),
+    radial-gradient(circle at 72% 42%, rgba(96,165,250,0.18), transparent 60%),
+    radial-gradient(circle at 52% 82%, rgba(34,211,238,0.12), transparent 60%),
+    linear-gradient(180deg, rgba(0,0,0,0.9), rgba(7,12,30,1));
+}
+
+/* DATE */
+.scene-date{
+  background:
+    radial-gradient(circle at 18% 24%, rgba(251,113,133,0.20), transparent 54%),
+    radial-gradient(circle at 68% 28%, rgba(167,139,250,0.22), transparent 56%),
+    radial-gradient(circle at 52% 86%, rgba(147,51,234,0.14), transparent 60%),
+    linear-gradient(180deg, rgba(0,0,0,0.90), rgba(14,3,20,1));
+}
+
+/* QUICK BITE */
+.scene-quick{
+  background:
+    radial-gradient(circle at 14% 18%, rgba(34,211,238,0.22), transparent 55%),
+    radial-gradient(circle at 82% 62%, rgba(56,189,248,0.20), transparent 60%),
+    radial-gradient(circle at 54% 90%, rgba(14,165,233,0.12), transparent 60%),
+    linear-gradient(180deg, rgba(0,0,0,0.90), rgba(2,10,18,1));
+}
+
+/* BUDGET */
+.scene-budget{
+  background:
+    radial-gradient(circle at 18% 18%, rgba(148,163,184,0.14), transparent 55%),
+    radial-gradient(circle at 72% 54%, rgba(100,116,139,0.14), transparent 60%),
+    radial-gradient(circle at 54% 90%, rgba(203,213,225,0.07), transparent 60%),
+    linear-gradient(180deg, rgba(0,0,0,0.92), rgba(7,10,14,1));
+}
+
+/* active scene */
+body.mood-work .scene-work{opacity:1}
+body.mood-date .scene-date{opacity:1}
+body.mood-quick_bite .scene-quick{opacity:1}
+body.mood-budget .scene-budget{opacity:1}
+
+/* canvas particles */
 #particles{
   position:fixed;
   inset:0;
   z-index:-8;
   pointer-events:none;
-  opacity:0.50;
+  opacity:0.55;
   transition: opacity .4s ease;
 }
 
@@ -71,6 +121,17 @@ body{
   mix-blend-mode: overlay;
 }
 
+/* keep old element (script still uses it) */
+.moodGradient{
+  position:fixed;
+  inset:0;
+  z-index:-10;
+  background:#000;
+  opacity:0;
+  pointer-events:none;
+}
+
+/* main */
 .app{
   max-width:1180px;
   margin:auto;
@@ -201,78 +262,6 @@ header{
   z-index:200;
 }
 
-.dropHead{
-  padding:12px 14px;
-  border-bottom:1px solid rgba(255,255,255,0.10);
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-}
-.dropTitle{
-  font-weight:1000;
-  font-size:13px;
-}
-.dropHint{
-  font-size:12px;
-  opacity:.65;
-}
-.dropList{
-  max-height:340px;
-  overflow:auto;
-}
-.dropItem{
-  padding:12px 14px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:14px;
-  cursor:pointer;
-  transition: background .15s ease;
-}
-.dropItem:hover{ background: rgba(255,255,255,0.06); }
-.dropLeft{
-  display:flex;
-  gap:12px;
-  align-items:center;
-  min-width:0;
-}
-.avatar{
-  width:36px;height:36px;border-radius:14px;
-  display:grid;place-items:center;
-  font-weight:1000;
-  background: linear-gradient(135deg,var(--accent),var(--accent2));
-}
-.dropName{
-  font-weight:1000;
-  font-size:13px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.dropUser{
-  font-size:12px;
-  opacity:.66;
-  margin-top:4px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.lockBadge{
-  font-size:11px;
-  padding:7px 10px;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.22);
-  font-weight:1000;
-  opacity:.92;
-}
-.emptyDrop{
-  padding:16px;
-  font-size:13px;
-  opacity:.65;
-}
-
 /* ================= Panel ================= */
 .panel{
   margin-top:18px;
@@ -327,45 +316,6 @@ button:disabled{
   transform:none;
 }
 
-/* Saved Sections */
-.savedSection{ margin-top:22px; }
-.savedSectionTitle{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  font-size:13px;
-  color:rgba(255,255,255,0.65);
-  margin-bottom:10px;
-}
-
-.carousel{
-  display:flex;
-  gap:12px;
-  overflow-x:auto;
-  scroll-snap-type:x mandatory;
-  padding-bottom:6px;
-}
-.carousel::-webkit-scrollbar{height:8px}
-.carousel::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:999px}
-
-.pinCard{
-  min-width:250px;
-  scroll-snap-align:start;
-  border-radius:20px;
-  padding:14px;
-  border:1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(16px);
-  cursor:pointer;
-  transition: transform .18s ease, border .18s ease;
-}
-.pinCard:hover{
-  transform: translateY(-3px);
-  border-color: rgba(255,255,255,0.24);
-}
-.pinCardTitle{font-weight:1000;font-size:13px}
-.pinCardMeta{margin-top:8px;font-size:12px;color:rgba(255,255,255,0.62)}
-
 /* results */
 .results{
   display:grid;
@@ -391,118 +341,7 @@ button:disabled{
   transition: transform .22s ease, box-shadow .22s ease, border .22s ease;
 }
 
-.card::before{
-  content:"";
-  position:absolute;
-  inset:-2px;
-  opacity:0;
-  transition:opacity .25s ease;
-  pointer-events:none;
-  background:
-    radial-gradient(600px circle at var(--mx,50%) var(--my,50%),
-    rgba(255,255,255,0.18),
-    rgba(167,139,250,0.10),
-    transparent 62%);
-}
-.card:hover::before{opacity:1}
-.card:hover{
-  transform: translateY(-7px);
-  border-color: rgba(255,255,255,0.26);
-  box-shadow:
-    0 38px 120px rgba(0,0,0,0.46),
-    0 0 70px rgba(167,139,250,0.10),
-    0 1px 0 rgba(255,255,255,0.06) inset;
-}
-
-.cardTitle{
-  margin:0;
-  font-size:15px;
-  font-weight:1000;
-  padding-right:92px;
-  line-height:1.35
-}
-
-.badgeRow{
-  margin-top:10px;
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  color:rgba(255,255,255,0.72);
-  font-size:12px;
-}
-
-.kmBadge{
-  display:inline-flex;
-  gap:8px;
-  align-items:center;
-  padding:7px 11px;
-  border-radius:999px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.30);
-}
-.kmDot{
-  width:9px;height:9px;border-radius:50%;
-  background: var(--accent);
-  box-shadow: 0 0 22px var(--accent-soft);
-}
-
-.badge{
-  background: rgba(0,0,0,0.26);
-  border: 1px solid rgba(255,255,255,0.12);
-  padding:7px 12px;
-  border-radius:999px;
-  font-size:12px;
-}
-
-.statusBadge{
-  border-radius:999px;
-  padding:7px 12px;
-  font-size:12px;
-  font-weight:1000;
-  border:1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.26);
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-}
-.statusDot{width:9px;height:9px;border-radius:50%}
-.openDot{background:#22c55e;box-shadow:0 0 14px rgba(34,197,94,0.55)}
-.closedDot{background:#ef4444;box-shadow:0 0 14px rgba(239,68,68,0.55)}
-
-.aiLine{
-  margin-top:10px;
-  font-size:12.5px;
-  color:rgba(255,255,255,0.72);
-  line-height:1.45;
-}
-.aiTag{
-  display:inline-flex;
-  align-items:center;
-  gap:7px;
-  border-radius:999px;
-  padding:7px 12px;
-  border:1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.26);
-  font-size:12px;
-  font-weight:1000;
-  color:rgba(255,255,255,0.90);
-  margin-top:12px;
-}
-.aiDot{
-  width:9px;height:9px;border-radius:50%;
-  background: linear-gradient(135deg,var(--accent),var(--accent2));
-  box-shadow:0 0 18px rgba(167,139,250,0.24);
-}
-
-.reachRow{
-  margin-top:10px;
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  font-size:12px;
-  color:rgba(255,255,255,0.64);
-}
-
+/* actions */
 .actions{
   position:absolute;
   right:14px;
@@ -545,9 +384,7 @@ button:disabled{
 }
 @keyframes shimmer{to{transform:translateX(100%)}}
 
-/* ===========================
-   ✅ Premium Modal Blur + Bounce (places modal)
-   =========================== */
+/* ================= Premium Place Modal ================= */
 #modalBackdrop{
   position: fixed;
   inset: 0;
@@ -594,71 +431,248 @@ button:disabled{
   opacity: 1;
   pointer-events: auto;
 }
-#modal.modalAnimatingIn{
-  opacity: 0;
-  transform: translate(-50%,-50%) translateY(20px) scale(0.94);
-}
-#modal.active:not(.modalAnimatingIn):not(.modalAnimatingOut){
-  transform: translate(-50%,-50%) translateY(0) scale(1);
-}
-#modal.modalAnimatingOut{
-  opacity: 0;
-  transform: translate(-50%,-50%) translateY(18px) scale(0.965);
-}
-#modal::-webkit-scrollbar{ width: 10px; }
-#modal::-webkit-scrollbar-thumb{
-  background: rgba(255,255,255,0.12);
-  border-radius: 999px;
-}
-#modal::-webkit-scrollbar-track{
-  background: transparent;
-}
 
 /* ===========================================================
-   ✅ NEW: Follow Requests Panel (Premium + DOES NOT block clicks)
+   ✅ Floating Follow Requests Panel (Bottom-right corner)
    =========================================================== */
 #reqBackdrop{
-  position: fixed;
-  inset: 0;
-  z-index: 10020;
-
-  opacity: 0;
-  pointer-events: none;
-
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-
-  transition: opacity 240ms cubic-bezier(.2,1,.2,1);
-}
-
-#reqBackdrop.active{
-  opacity: 1;
-  pointer-events: auto;
+  display:none; /* ✅ remove full screen overlay */
 }
 
 #reqModal{
   position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%,-50%) translateY(16px) scale(0.96);
-  z-index: 10021;
+  right: 22px;
+  bottom: 22px;
+  z-index: 12000;
 
-  width: min(700px, 92vw);
-  max-height: 82vh;
+  width: min(420px, calc(100vw - 44px));
+  max-height: 58vh;
   overflow: auto;
 
-  border-radius: 26px;
-  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: linear-gradient(180deg, rgba(20,22,35,0.92), rgba(0,0,0,0.75));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 
-  background: linear-gradient(180deg, rgba(25,30,45,0.92), rgba(0,0,0,0.78));
+  box-shadow: 0 40px 140px rgba(0,0,0,0.82);
+
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(16px) scale(0.98);
+  transition: opacity 240ms cubic-bezier(.2,1,.2,1),
+              transform 240ms cubic-bezier(.2,1,.2,1);
+}
+#reqModal.active{
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.reqInner{ padding: 14px 14px 12px; }
+.reqTitle{ margin:0; font-size:15px; font-weight:1000; }
+.reqSub{ margin-top:6px; font-size:12px; opacity:.70; }
+
+.reqList{ margin-top:12px; }
+
+.smallBtn{
+  border:none;
+  color:white;
+  font-weight:1000;
+  cursor:pointer;
+  border-radius:14px;
+  padding:9px 12px;
+  background: rgba(255,255,255,0.08);
+}
+.smallBtn.primary{
+  background: linear-gradient(135deg,var(--accent),var(--accent2));
+}
+.smallBtn.danger{
+  background: rgba(239,68,68,0.18);
+  border:1px solid rgba(239,68,68,0.20);
+}
+.smallBtn.reqClose{
+  margin-left:auto;
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  padding:0;
+  border-radius:14px;
+}
+
+.reqItem{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+
+  padding:12px;
+  border-radius:18px;
+
+  border:1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.20);
+  margin-bottom:10px;
+}
+.reqUser{ font-weight:1000; font-size:13px; }
+.reqMeta{ font-size:12px; opacity:.68; margin-top:4px; }
+.reqBtns{ display:flex; gap:10px; }
+
+
+/* ===========================================================
+   🆕 SPLIT GLASS PLACE MODAL (Map + Details)
+   =========================================================== */
+
+.modalInner.splitModal{
+  display:grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  padding:0;
+  overflow:hidden;
+}
+
+/* LEFT SIDE – MAP */
+.splitMap{
+  position:relative;
+  min-height:440px;
+  background: rgba(0,0,0,0.35);
+}
+
+.splitMap iframe{
+  width:100%;
+  height:100%;
+  border:none;
+
+  filter:
+    saturate(1.15)
+    contrast(0.92)
+    brightness(1.06);
+
+  transform: scale(1.02);
+}
+
+/* cartoon-ish soft overlay */
+.splitMap::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+
+  background:
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(255,255,255,0.10),
+      transparent 45%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,0.05),
+      rgba(0,0,0,0.22)
+    );
+}
+
+/* RIGHT SIDE – DETAILS */
+.splitDetails{
+  padding:22px 22px 20px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+/* HEADER */
+.splitHeader{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+
+.splitTitle{
+  font-size:20px;
+  font-weight:1000;
+  letter-spacing:-0.3px;
+}
+
+.splitMeta{
+  margin-top:6px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.badge{
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  border:1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+}
+
+/* INFO ROWS */
+.infoRow{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+
+  padding:12px;
+  border-radius:16px;
+
+  background: rgba(0,0,0,0.22);
+  border:1px solid rgba(255,255,255,0.10);
+
+  font-size:13px;
+}
+
+.infoIcon{
+  width:28px;
+  height:28px;
+  border-radius:10px;
+
+  display:grid;
+  place-items:center;
+
+  background: rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.10);
+}
+
+/* ACTION BAR */
+.splitActions{
+  margin-top:auto;
+  display:flex;
+  gap:12px;
+}
+
+.splitActions button{
+  flex:1;
+  border-radius:14px;
+  padding:12px;
+  font-weight:1000;
+}
+
+/* MOBILE FALLBACK */
+@media (max-width: 860px){
+  .modalInner.splitModal{
+    grid-template-columns: 1fr;
+  }
+  .splitMap{
+    min-height:300px;
+  }
 }
 
 </style>
 </head>
 
-<body>
+<body class="mood-work">
+  <!-- ✅ Full mood scenes -->
+  <div class="moodScene">
+    <div class="sceneLayer scene-work"></div>
+    <div class="sceneLayer scene-date"></div>
+    <div class="sceneLayer scene-quick"></div>
+    <div class="sceneLayer scene-budget"></div>
+  </div>
+
+  <!-- keep for compatibility -->
   <div id="moodGradient" class="moodGradient"></div>
+
   <canvas id="particles"></canvas>
   <div class="noise"></div>
 
@@ -672,28 +686,12 @@ button:disabled{
       <div class="userbox">
         <div class="welcomeChip">Welcome, <b>{{username}}</b></div>
 
-        <div class="searchWrap" id="searchWrap">
-          <span class="searchIcon">🔍</span>
-          <input id="userSearch" class="userSearch" placeholder="Search users…" autocomplete="off"/>
-          <div class="searchDrop" id="userDrop">
-            <div class="dropHead">
-              <div class="dropTitle">Search Results</div>
-              <div class="dropHint">Click to open profile</div>
-            </div>
-            <div class="dropList" id="dropList"></div>
-          </div>
-        </div>
+        <button class="topBtn" id="myProfileBtn" title="My profile">My Profile</button>
 
-        <button class="topBtn" id="myProfileBtn" title="My profile">
-           My Profile
-        </button>
-
-        <button class="topBtn" id="copyProfileBtn" title="Copy profile link">
-           Copy Link
-        </button>
+        <button class="topBtn" id="copyProfileBtn" title="Copy profile link">Copy Link</button>
 
         <button class="topBtn" id="reqBtn" title="Follow requests" style="display:none">
-           Requests <span id="reqCount" style="opacity:.9;"></span>
+          Requests <span id="reqCount" style="opacity:.9;"></span>
         </button>
 
         <a class="logoutBtn" href="/logout">Logout</a>
@@ -716,17 +714,16 @@ button:disabled{
     </div>
 
     <div id="savedWrap"></div>
-
     <div id="results" class="results"></div>
   </div>
 
-  <!-- places modal -->
+  <!-- place modal -->
   <div id="modalBackdrop"></div>
   <div id="modal">
-    <div id="modalInner" class="modalInner"></div>
+    <div id="modalInner" class="modalInner splitModal"></div>
   </div>
 
-  <!-- follow requests modal -->
+  <!-- follow requests floating panel -->
   <div id="reqBackdrop"></div>
   <div id="reqModal">
     <div class="reqInner">
@@ -737,13 +734,12 @@ button:disabled{
         </div>
         <button class="smallBtn reqClose" id="reqCloseBtn">✕</button>
       </div>
+
       <div class="reqList" id="reqList"></div>
     </div>
   </div>
 
-  <script>
-    window.MOODMAP_USERNAME = "{{user_username}}";
-  </script>
+  <script>window.MOODMAP_USERNAME = "{{user_username}}";</script>
   <script src="https://unpkg.com/opening_hours@3.6.0/opening_hours.min.js"></script>
   <script src="/static/script.js"></script>
 </body>

@@ -10,8 +10,6 @@ from math import radians, cos, sin, asin, sqrt
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
-from flask_mail import Mail, Message
-
 app = Flask(__name__)
 
 # =========================================================
@@ -20,9 +18,13 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "moodmaps_super_secret_key_123")
 
 # =========================================================
-# ✅ OVERPASS URL
+# ✅ OVERPASS URL (fallback list)
 # =========================================================
-OVERPASS_URL = os.environ.get("OVERPASS_URL", "https://overpass-api.de/api/interpreter")
+OVERPASS_URLS = [
+    os.environ.get("OVERPASS_URL", "").strip() or "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.nchc.org.tw/api/interpreter",
+]
 
 # =========================================================
 # ✅ UPLOAD CONFIG
@@ -34,19 +36,10 @@ ALLOWED_EXT = {"png", "jpg", "jpeg", "webp"}
 MAX_PFP_SIZE_MB = 4
 
 # =========================================================
-# ✅ EMAIL CONFIG (ENV based for production)
+# ✅ BREVO CONFIG (Render-safe)
 # =========================================================
-app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
-app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", "587"))
-app.config["MAIL_USE_TLS"] = os.environ.get("MAIL_USE_TLS", "1") == "1"
-app.config["MAIL_USE_SSL"] = os.environ.get("MAIL_USE_SSL", "0") == "1"
-
-# ✅ IMPORTANT: DO NOT hardcode these in GitHub
-app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME", "")
-app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD", "")
-app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_DEFAULT_SENDER", app.config["MAIL_USERNAME"])
-
-mail = Mail(app)
+BREVO_API_KEY = (os.environ.get("BREVO_API_KEY") or "").strip()
+BREVO_SENDER = (os.environ.get("BREVO_SENDER") or "").strip()
 
 # =========================================================
 # ✅ DB HELPERS (Better handling)
@@ -210,16 +203,10 @@ def inject_globals():
 
 
 # =========================================================
-# ✅ MAINTENANCE GATE (BLOCK SITE WHEN ON)
+# ✅ MAINTENANCE GATE
 # =========================================================
 @app.before_request
 def maintenance_gate():
-    """
-    When maintenance is ON:
-    - block all routes
-    - allow only login/logout/reset + static
-    - allow admin toggle endpoint
-    """
     try:
         if request.path.startswith("/static/"):
             return None
@@ -235,7 +222,6 @@ def maintenance_gate():
                 "/api/admin/maintenance",
             }
 
-            # allow only specific paths
             if request.path in allowed_paths:
                 return None
 
@@ -317,23 +303,49 @@ def build_reset_email_html(code: str):
 """
 
 
-def send_reset_email(to_email, code):
-    # ✅ if no env config, just fail gracefully
-    if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
-        print("⚠️ Mail ENV not configured, cannot send email.")
+# =========================================================
+# ✅ BREVO EMAIL SENDING (THE REAL FIX)
+# =========================================================
+def send_reset_email(to_email: str, code: str) -> bool:
+    if not BREVO_API_KEY or not BREVO_SENDER:
+        print("❌ BREVO env vars missing")
+        print("   BREVO_API_KEY:", "SET" if BREVO_API_KEY else "EMPTY")
+        print("   BREVO_SENDER:", BREVO_SENDER or "EMPTY")
         return False
 
     try:
-        msg = Message(
-            subject="MoodMap Password Reset Code",
-            recipients=[to_email]
-        )
-        msg.body = f"Your MoodMap reset code is {code}. Valid for 10 minutes."
-        msg.html = build_reset_email_html(code)
-        mail.send(msg)
-        return True
+        url = "https://api.brevo.com/v3/smtp/email"
+        html = build_reset_email_html(code)
+
+        payload = {
+            "sender": {
+                "name": "MoodMap",
+                "email": BREVO_SENDER
+            },
+            "to": [{"email": to_email}],
+            "subject": "MoodMap Password Reset Code",
+            "htmlContent": html,
+            "textContent": f"Your MoodMap reset code is {code}. Valid for 10 minutes."
+        }
+
+        headers = {
+            "accept": "application/json",
+            "api-key": BREVO_API_KEY,
+            "content-type": "application/json"
+        }
+
+        print("📨 Sending reset email via Brevo API ->", to_email)
+        r = requests.post(url, json=payload, headers=headers, timeout=15)
+
+        if r.status_code in (200, 201, 202):
+            print("✅ Brevo email sent ✅")
+            return True
+
+        print("❌ Brevo failed:", r.status_code, r.text)
+        return False
+
     except Exception as e:
-        print("❌ Email sending failed:", e)
+        print("❌ Brevo exception:", repr(e))
         return False
 
 
@@ -411,7 +423,7 @@ def delete_profile_pic_file(profile_pic_url: str):
 
 
 # =========================================================
-# ✅ ADMIN CHECK (for maintenance toggle)
+# ✅ ADMIN CHECK
 # =========================================================
 def is_admin(uid):
     try:
@@ -938,6 +950,151 @@ def api_follow_requests_reject():
 
 
 # =========================================================
+# ✅ FOLLOWERS / FOLLOWING LISTS + STATS + REMOVE
+# =========================================================
+
+@app.route("/api/follow/stats", methods=["GET"])
+def api_follow_stats():
+    uid = current_user()
+    if not uid:
+        return jsonify({"success": False})
+
+    username = (request.args.get("username", "") or "").strip().lower()
+    target = user_by_username(username)
+    if not target:
+        return jsonify({"success": False, "message": "User not found"})
+
+    with get_db() as db:
+        followers = db.execute("""
+            SELECT COUNT(*) as c
+            FROM follows
+            WHERE following_id=? AND status='accepted'
+        """, (target["id"],)).fetchone()["c"]
+
+        following = db.execute("""
+            SELECT COUNT(*) as c
+            FROM follows
+            WHERE follower_id=? AND status='accepted'
+        """, (target["id"],)).fetchone()["c"]
+
+    return jsonify({
+        "success": True,
+        "followers": int(followers),
+        "following": int(following)
+    })
+
+
+@app.route("/api/follow/followers", methods=["GET"])
+def api_follow_list_followers():
+    viewer_id = current_user()
+    if not viewer_id:
+        return jsonify({"success": False, "message": "Login required"})
+
+    username = (request.args.get("username", "") or "").strip().lower()
+    target = user_by_username(username)
+    if not target:
+        return jsonify({"success": False, "message": "User not found"})
+
+    with get_db() as db:
+        rows = db.execute("""
+            SELECT
+                u.username, u.name, u.profile_pic,
+                f.created_at,
+                CASE WHEN vf.id IS NULL THEN 0 ELSE 1 END AS viewer_follows_user,
+                CASE WHEN uv.id IS NULL THEN 0 ELSE 1 END AS user_follows_viewer
+            FROM follows f
+            JOIN users u ON u.id = f.follower_id
+
+            LEFT JOIN follows vf
+              ON vf.follower_id = ? AND vf.following_id = u.id AND vf.status='accepted'
+
+            LEFT JOIN follows uv
+              ON uv.follower_id = u.id AND uv.following_id = ? AND uv.status='accepted'
+
+            WHERE f.following_id=? AND f.status='accepted'
+            ORDER BY f.created_at DESC
+        """, (viewer_id, viewer_id, target["id"])).fetchall()
+
+    out = []
+    for r in rows:
+        out.append({
+            "username": r["username"],
+            "name": r["name"],
+            "profile_pic": r["profile_pic"] or "",
+            "created_at": r["created_at"],
+            "viewer_follows_user": int(r["viewer_follows_user"] or 0),
+            "user_follows_viewer": int(r["user_follows_viewer"] or 0),
+        })
+
+    return jsonify({"success": True, "list": out})
+
+
+@app.route("/api/follow/following", methods=["GET"])
+def api_follow_list_following():
+    viewer_id = current_user()
+    if not viewer_id:
+        return jsonify({"success": False, "message": "Login required"})
+
+    username = (request.args.get("username", "") or "").strip().lower()
+    target = user_by_username(username)
+    if not target:
+        return jsonify({"success": False, "message": "User not found"})
+
+    with get_db() as db:
+        rows = db.execute("""
+            SELECT
+                u.username, u.name, u.profile_pic,
+                f.created_at,
+                CASE WHEN vf.id IS NULL THEN 0 ELSE 1 END AS viewer_follows_user,
+                CASE WHEN uv.id IS NULL THEN 0 ELSE 1 END AS user_follows_viewer
+            FROM follows f
+            JOIN users u ON u.id = f.following_id
+
+            LEFT JOIN follows vf
+              ON vf.follower_id = ? AND vf.following_id = u.id AND vf.status='accepted'
+
+            LEFT JOIN follows uv
+              ON uv.follower_id = u.id AND uv.following_id = ? AND uv.status='accepted'
+
+            WHERE f.follower_id=? AND f.status='accepted'
+            ORDER BY f.created_at DESC
+        """, (viewer_id, viewer_id, target["id"])).fetchall()
+
+    out = []
+    for r in rows:
+        out.append({
+            "username": r["username"],
+            "name": r["name"],
+            "profile_pic": r["profile_pic"] or "",
+            "created_at": r["created_at"],
+            "viewer_follows_user": int(r["viewer_follows_user"] or 0),
+            "user_follows_viewer": int(r["user_follows_viewer"] or 0),
+        })
+
+    return jsonify({"success": True, "list": out})
+
+
+@app.route("/api/follow/remove_follower", methods=["POST"])
+def api_follow_remove_follower():
+    uid = current_user()
+    if not uid:
+        return jsonify({"success": False, "message": "Login required"})
+
+    username = (request.json.get("username", "") or "").strip().lower()
+    target = user_by_username(username)
+    if not target:
+        return jsonify({"success": False, "message": "User not found"})
+
+    with get_db() as db:
+        db.execute("""
+            DELETE FROM follows
+            WHERE follower_id=? AND following_id=? AND status='accepted'
+        """, (target["id"], uid))
+
+    return jsonify({"success": True})
+
+
+# =========================================================
 # ✅ FORGOT / RESET
 # =========================================================
 @app.route("/forgot")
@@ -972,7 +1129,7 @@ def api_forgot():
 
     ok = send_reset_email(email, code)
     if not ok:
-        return jsonify({"success": True, "sent": False})
+        return jsonify({"success": False, "message": "Email sending failed. Try again later."})
 
     return jsonify({"success": True, "sent": True})
 
@@ -983,6 +1140,9 @@ def api_reset():
     email = data.get("email", "").strip().lower()
     code = data.get("code", "").strip()
     new_password = data.get("new_password", "")
+
+    if not email or not code or not new_password or len(new_password) < 4:
+        return jsonify({"success": False, "message": "Invalid request"})
 
     with get_db() as db:
         user = db.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
@@ -1070,10 +1230,9 @@ def api_favorites_remove():
 
 
 # =========================================================
-# ✅ PLACES API
+# ✅ PLACES API (FIXED LOGIC)
 # =========================================================
 def haversine(lat1, lon1, lat2, lon2):
-    # ✅ FIXED BUG HERE
     lat1, lon1, lat2, lon2 = map(float, [lat1, lon1, lat2, lon2])
     lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
     dlon = lon2 - lon1
@@ -1091,31 +1250,643 @@ MOOD_TAGS = {
 }
 
 
-def fetch_places(tags, lat, lon, radius=5000):
+def _safe_str(x):
+    return (x or "").strip()
+
+
+def _contains_any(text: str, keywords):
+    if not text:
+        return False
+    t = text.lower()
+    return any(k in t for k in keywords)
+
+
+# ✅ keyword banks for strict filtering
+WORK_KEYWORDS = [
+    "starbucks", "ccd", "cafe coffee day", "third wave", "thirdwave",
+    "book cafe", "book café", "roastery", "coffee", "coffee house",
+    "cowork", "co-work", "workspace", "study", "library", "reading",
+    "iraj", "irani"
+]
+
+DATE_KEYWORDS = [
+    "bistro", "lounge", "rooftop", "terrace", "garden", "aesthetic",
+    "cafe", "café", "coffee", "patisserie", "bakery", "brunch"
+]
+
+DATE_BAD_KEYWORDS = [
+    "dhaba", "canteen", "mess", "misal", "vada pav", "vadapav", "tapri",
+    "roll", "shawarma", "momos"
+]
+
+BUDGET_KEYWORDS = [
+    "misal", "vadapav", "vada pav", "poha", "upma", "chai", "tea", "tapri",
+    "momos", "roll", "shawarma", "sandwich", "bhurji", "omelette",
+    "chinese", "noodles", "fried rice", "thali", "mess", "bhojanalay",
+    "snacks", "juice", "cold coffee", "tiffin"
+]
+
+EXPENSIVE_KEYWORDS = [
+    "fine dine", "fine-dine", "luxury", "premium", "bar", "pub"
+]
+
+
+def _hard_filter_place(mood: str, tags: dict):
+    """
+    ✅ Critical filter: prevents wrong places from leaking between moods.
+    """
+    amenity = _safe_str(tags.get("amenity", "")).lower()
+    name = _safe_str(tags.get("name", "")).lower()
+
+    if mood == "quick_bite":
+        return amenity == "fast_food"
+
+    if mood == "budget":
+        # budget should NOT include cafes
+        if amenity not in ["restaurant", "fast_food", "food_court"]:
+            return False
+        if _contains_any(name, EXPENSIVE_KEYWORDS):
+            return False
+        return True
+
+    if mood == "date":
+        if amenity not in ["cafe", "restaurant"]:
+            return False
+        if amenity == "fast_food":
+            return False
+        if _contains_any(name, DATE_BAD_KEYWORDS):
+            return False
+        # allow date vibe if keywords or outdoor seating or wheelchair
+        vibe_ok = (
+            _contains_any(name, DATE_KEYWORDS)
+            or _safe_str(tags.get("outdoor_seating")).lower() == "yes"
+            or _safe_str(tags.get("wheelchair")).lower() == "yes"
+        )
+        return vibe_ok
+
+    if mood == "work":
+        # coworking
+        if amenity == "coworking_space":
+            return True
+        if _safe_str(tags.get("office")).lower() == "coworking":
+            return True
+
+        if amenity == "cafe":
+            wifi_ok = _safe_str(tags.get("internet_access")).lower() in ["yes", "wlan", "wifi"]
+            kw_ok = _contains_any(name, WORK_KEYWORDS)
+            return wifi_ok or kw_ok
+
+        return False
+
+    return True
+
+
+def _score_place(mood: str, tags: dict, distance_km: float):
+    """
+    Ranking system:
+    - distance matters
+    - mood-based scoring + keyword boosts
+    """
+    score = 0.0
+
+    # base distance
+    if distance_km <= 0.3:
+        score += 18
+    elif distance_km <= 0.8:
+        score += 14
+    elif distance_km <= 1.5:
+        score += 10
+    elif distance_km <= 2.5:
+        score += 6
+    elif distance_km <= 4:
+        score += 2
+    else:
+        score -= 2
+
+    name = _safe_str(tags.get("name", "")).lower()
+    amenity = _safe_str(tags.get("amenity", "")).lower()
+
+    # boosts
+    if _safe_str(tags.get("opening_hours")):
+        score += 2
+    if _safe_str(tags.get("website")) or _safe_str(tags.get("contact:website")):
+        score += 2
+    if _safe_str(tags.get("phone")) or _safe_str(tags.get("contact:phone")):
+        score += 1
+
+    if _safe_str(tags.get("internet_access")).lower() in ["yes", "wlan", "wifi"]:
+        score += 5
+
+    if mood == "work":
+        if amenity == "coworking_space" or _safe_str(tags.get("office")).lower() == "coworking":
+            score += 60
+        if amenity == "cafe":
+            score += 16
+        if _contains_any(name, WORK_KEYWORDS):
+            score += 14
+        if amenity == "fast_food":
+            score -= 40
+
+    elif mood == "date":
+        if amenity == "cafe":
+            score += 18
+        if amenity == "restaurant":
+            score += 14
+        if _safe_str(tags.get("outdoor_seating")).lower() == "yes":
+            score += 14
+        if _contains_any(name, DATE_KEYWORDS):
+            score += 12
+        if _contains_any(name, DATE_BAD_KEYWORDS):
+            score -= 25
+        if amenity == "fast_food":
+            score -= 60
+
+    elif mood == "quick_bite":
+        if amenity == "fast_food":
+            score += 30
+        else:
+            score -= 70
+
+    elif mood == "budget":
+        if amenity == "fast_food":
+            score += 12
+        if amenity == "restaurant":
+            score += 10
+        if amenity == "food_court":
+            score += 14
+        if _contains_any(name, BUDGET_KEYWORDS):
+            score += 22
+        if _contains_any(name, EXPENSIVE_KEYWORDS):
+            score -= 18
+
+    return score
+
+
+def fetch_places_for_mood(mood, lat, lon, radius=5000):
+    """
+    mood-specific Overpass query building
+    """
+    lat = float(lat)
+    lon = float(lon)
+
     blocks = []
-    for tag in tags:
-        blocks.append(f'node["amenity"="{tag}"](around:{radius},{lat},{lon});')
+
+    if mood == "work":
+        blocks.append(f'node["amenity"="coworking_space"](around:{radius},{lat},{lon});')
+        blocks.append(f'node["office"="coworking"](around:{radius},{lat},{lon});')
+        blocks.append(f'node["amenity"="cafe"](around:{radius},{lat},{lon});')
+
+    elif mood == "date":
+        blocks.append(f'node["amenity"="cafe"](around:{radius},{lat},{lon});')
+        blocks.append(f'node["amenity"="restaurant"](around:{radius},{lat},{lon});')
+        blocks.append(f'node["amenity"="cafe"]["outdoor_seating"="yes"](around:{radius},{lat},{lon});')
+        blocks.append(f'node["amenity"="restaurant"]["outdoor_seating"="yes"](around:{radius},{lat},{lon});')
+        blocks.append(f'node["amenity"="cafe"]["internet_access"="yes"](around:{radius},{lat},{lon});')
+        blocks.append(f'node["amenity"="restaurant"]["internet_access"="yes"](around:{radius},{lat},{lon});')
+
+    elif mood == "quick_bite":
+        blocks.append(f'node["amenity"="fast_food"](around:{radius},{lat},{lon});')
+
+    elif mood == "budget":
+        # ✅ FIX: no cafes in budget at all
+        blocks.append(f'node["amenity"="restaurant"](around:{radius},{lat},{lon});')
+        blocks.append(f'node["amenity"="fast_food"](around:{radius},{lat},{lon});')
+        blocks.append(f'node["amenity"="food_court"](around:{radius},{lat},{lon});')
 
     query = f"""
-    [out:json][timeout:25];
+    [out:json][timeout:30];
     (
       {''.join(blocks)}
     );
-    out body 40;
+    out 160;
     """
 
-    try:
-        res = requests.post(OVERPASS_URL, data=query, timeout=25)
-    except:
-        return []
+    headers = {
+        "User-Agent": "MoodMap/1.0 (contact: moodmap)",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Cache-Control": "no-cache"
+    }
 
-    if not res.text.strip() or "html" in res.text.lower():
-        return []
+    for url in OVERPASS_URLS:
+        try:
+            res = requests.post(url, data=query, timeout=28, headers=headers)
+            txt = (res.text or "").strip()
+
+            if not txt or "html" in txt.lower():
+                continue
+
+            data = res.json()
+            elements = data.get("elements", [])
+            if elements:
+                return elements
+
+        except Exception as e:
+            print("⚠️ Overpass fail:", url, "->", e)
+            continue
+
+    return []
+
+
+# =========================================================
+# ✅ NEW: PLACE DETAILS SYSTEM (Option 1 Hybrid Free)
+# =========================================================
+
+PLACE_DETAILS_CACHE = {}
+PLACE_DETAILS_TTL_SEC = 10 * 60
+
+
+def _cache_get(key: str):
+    try:
+        item = PLACE_DETAILS_CACHE.get(key)
+        if not item:
+            return None
+        if int(time.time()) > int(item.get("expires_at", 0)):
+            PLACE_DETAILS_CACHE.pop(key, None)
+            return None
+        return item.get("data")
+    except:
+        return None
+
+
+def _cache_set(key: str, data):
+    try:
+        PLACE_DETAILS_CACHE[key] = {
+            "expires_at": int(time.time()) + PLACE_DETAILS_TTL_SEC,
+            "data": data
+        }
+    except:
+        pass
+
+
+def _safe_float(x):
+    try:
+        return float(x)
+    except:
+        return None
+
+
+def _build_maps_url(lat, lon):
+    try:
+        return f"https://www.google.com/maps?q={lat},{lon}"
+    except:
+        return ""
+
+
+def _clean_tag_value(v):
+    try:
+        if v is None:
+            return ""
+        v = str(v).strip()
+        if len(v) > 340:
+            v = v[:340] + "…"
+        return v
+    except:
+        return ""
+
+
+def _pick_category_from_tags(tags: dict):
+    if not tags:
+        return "place"
+    for k in ["amenity", "shop", "tourism", "leisure", "office", "building"]:
+        if tags.get(k):
+            return str(tags.get(k))
+    return "place"
+
+
+def _extract_contact(tags: dict):
+    if not tags:
+        tags = {}
+    phone = tags.get("phone") or tags.get("contact:phone") or tags.get("mobile") or tags.get("contact:mobile") or ""
+    website = tags.get("website") or tags.get("contact:website") or tags.get("url") or tags.get("contact:url") or ""
+    email = tags.get("email") or tags.get("contact:email") or ""
+    instagram = tags.get("contact:instagram") or tags.get("instagram") or ""
+    facebook = tags.get("contact:facebook") or tags.get("facebook") or ""
+    return {
+        "phone": _clean_tag_value(phone),
+        "website": _clean_tag_value(website),
+        "email": _clean_tag_value(email),
+        "instagram": _clean_tag_value(instagram),
+        "facebook": _clean_tag_value(facebook),
+    }
+
+
+def _reverse_geocode_nominatim(lat, lon):
+    """
+    Returns:
+      { display_name, address }
+    """
+    try:
+        url = "https://nominatim.openstreetmap.org/reverse"
+        params = {
+            "format": "jsonv2",
+            "lat": lat,
+            "lon": lon,
+            "zoom": 18,
+            "addressdetails": 1
+        }
+        headers = {
+            "User-Agent": "MoodMap/1.0 (contact: moodmap)"
+        }
+        r = requests.get(url, params=params, headers=headers, timeout=10)
+        if r.status_code != 200:
+            return None
+        data = r.json()
+        return data
+    except Exception as e:
+        print("⚠️ nominatim reverse error:", e)
+        return None
+
+
+def _fetch_overpass_element(osm_type: str, osm_id: int):
+    """
+    Returns an element dict with tags + center/lat/lon.
+    """
+    osm_type = (osm_type or "").strip().lower()
+    if osm_type not in ["node", "way", "relation"]:
+        return None
+
+    # for way/relation, ask for center
+    query = f"""
+    [out:json][timeout:25];
+    (
+      {osm_type}({int(osm_id)});
+    );
+    out center tags;
+    """
+
+    headers = {
+        "User-Agent": "MoodMap/1.0 (contact: moodmap)",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Cache-Control": "no-cache"
+    }
+
+    for url in OVERPASS_URLS:
+        try:
+            res = requests.post(url, data=query, timeout=22, headers=headers)
+            txt = (res.text or "").strip()
+
+            if not txt or "html" in txt.lower():
+                continue
+
+            data = res.json()
+            elements = data.get("elements", [])
+            if not elements:
+                continue
+
+            return elements[0]
+        except Exception as e:
+            print("⚠️ Overpass element fail:", url, "->", e)
+            continue
+
+    return None
+
+
+def _wiki_summary_from_title(title: str):
+    """
+    Wikipedia REST API summary for image + short extract.
+    Returns:
+      { ok, title, extract, thumbnail }
+    """
+    try:
+        if not title:
+            return None
+
+        # Wikipedia title typically comes like: en:Some_Page
+        # We handle: en:Title, Title
+        if ":" in title and title.split(":", 1)[0] in ["en", "hi", "mr"]:
+            lang, t = title.split(":", 1)
+        else:
+            lang, t = "en", title
+
+        t = t.strip().replace(" ", "_")
+
+        url = f"https://{lang}.wikipedia.org/api/rest_v1/page/summary/{t}"
+        headers = {
+            "User-Agent": "MoodMap/1.0 (contact: moodmap)"
+        }
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code != 200:
+            return None
+        data = r.json()
+        thumb = ""
+        try:
+            thumb = (data.get("thumbnail") or {}).get("source") or ""
+        except:
+            thumb = ""
+
+        return {
+            "ok": True,
+            "title": data.get("title") or "",
+            "extract": data.get("extract") or "",
+            "thumbnail": thumb
+        }
+    except Exception as e:
+        print("⚠️ wiki summary error:", e)
+        return None
+
+
+def _place_image_fallback(category: str):
+    """
+    Professional fallback images (free, stable).
+    Uses Unsplash source endpoint (no key) based on keyword.
+    """
+    cat = (category or "place").lower()
+
+    # choose keyword
+    key = "city"
+    if "cafe" in cat:
+        key = "cafe"
+    elif "restaurant" in cat:
+        key = "restaurant"
+    elif "fast_food" in cat or "fast" in cat:
+        key = "street+food"
+    elif "hospital" in cat:
+        key = "hospital"
+    elif "school" in cat or "college" in cat or "university" in cat:
+        key = "campus"
+    elif "gym" in cat:
+        key = "gym"
+    elif "park" in cat:
+        key = "park"
+    elif "hotel" in cat:
+        key = "hotel"
+    elif "mall" in cat or "shop" in cat:
+        key = "shopping"
+    elif "atm" in cat or "bank" in cat:
+        key = "bank"
+    elif "pharmacy" in cat:
+        key = "pharmacy"
+    elif "cinema" in cat or "theatre" in cat:
+        key = "cinema"
+
+    return f"https://source.unsplash.com/1200x600/?{key}"
+
+
+def _resolve_place_image(tags: dict, category: str):
+    """
+    Hybrid free:
+    1) OSM tag image=
+    2) wikimedia_commons
+    3) wikipedia summary thumbnail
+    4) fallback by category
+    Returns: (image_url, gallery_list, wiki_extract)
+    """
+    gallery = []
+    wiki_extract = ""
 
     try:
-        return res.json().get("elements", [])
+        if not tags:
+            tags = {}
+
+        # 1) direct image tag
+        img = (tags.get("image") or "").strip()
+        if img.startswith("http://") or img.startswith("https://"):
+            return img, gallery, wiki_extract
+
+        # 2) wikipedia tag
+        wiki = (tags.get("wikipedia") or "").strip()
+        if wiki:
+            ws = _wiki_summary_from_title(wiki)
+            if ws and ws.get("thumbnail"):
+                wiki_extract = ws.get("extract") or ""
+                return ws.get("thumbnail"), gallery, wiki_extract
+
+        # 3) if wikidata present, try wikipedia anyway (basic way: not all Q have direct thumbnail)
+        # We'll keep it simple because Wikidata API adds extra dependencies.
+        # If you want, later we can expand Q-id -> sitelinks -> thumbnail.
     except:
-        return []
+        pass
+
+    return _place_image_fallback(category), gallery, wiki_extract
+
+
+@app.route("/api/place_details", methods=["GET"])
+def api_place_details():
+    uid = current_user()
+    if not uid:
+        return jsonify({"ok": False, "message": "Login required"}), 403
+
+    osm_type = (request.args.get("type") or "").strip().lower()
+    osm_id = request.args.get("id")
+
+    lat = request.args.get("lat")
+    lon = request.args.get("lon")
+
+    # optional: name/category as fallback
+    fallback_name = (request.args.get("name") or "").strip()
+    fallback_category = (request.args.get("category") or "").strip()
+
+    # ================= cache =================
+    cache_key = ""
+    if osm_type and osm_id:
+        cache_key = f"{osm_type}/{osm_id}"
+        cached = _cache_get(cache_key)
+        if cached:
+            return jsonify({"ok": True, "place": cached})
+
+    element = None
+    tags = {}
+    pl_lat = None
+    pl_lon = None
+
+    # ================= Overpass element =================
+    if osm_type in ["node", "way", "relation"] and osm_id:
+        try:
+            element = _fetch_overpass_element(osm_type, int(osm_id))
+        except:
+            element = None
+
+        if element:
+            tags = element.get("tags", {}) or {}
+
+            # node has lat/lon
+            if element.get("lat") and element.get("lon"):
+                pl_lat = element.get("lat")
+                pl_lon = element.get("lon")
+            else:
+                # way/relation center
+                c = element.get("center") or {}
+                pl_lat = c.get("lat")
+                pl_lon = c.get("lon")
+
+    # ================= fallback coords =================
+    if pl_lat is None and lat is not None:
+        pl_lat = _safe_float(lat)
+    if pl_lon is None and lon is not None:
+        pl_lon = _safe_float(lon)
+
+    if pl_lat is None or pl_lon is None:
+        return jsonify({"ok": False, "message": "Missing coordinates"}), 400
+
+    # ================= reverse geocode =================
+    rev = _reverse_geocode_nominatim(pl_lat, pl_lon)
+    address = ""
+    if rev:
+        address = rev.get("display_name") or ""
+    else:
+        address = ""
+
+    category = _pick_category_from_tags(tags)
+    if not category and fallback_category:
+        category = fallback_category
+
+    name = (tags.get("name") or "").strip()
+    if not name:
+        name = fallback_name or ""
+    if not name:
+        name = (category or "place").replace("_", " ").title()
+
+    # ================= image =================
+    img_url, gallery, wiki_extract = _resolve_place_image(tags, category)
+
+    contact = _extract_contact(tags)
+
+    opening_hours = _clean_tag_value(tags.get("opening_hours") or "")
+    cuisine = _clean_tag_value(tags.get("cuisine") or "")
+    wheelchair = _clean_tag_value(tags.get("wheelchair") or "")
+    takeaway = _clean_tag_value(tags.get("takeaway") or "")
+    delivery = _clean_tag_value(tags.get("delivery") or "")
+    smoking = _clean_tag_value(tags.get("smoking") or "")
+    toilets = _clean_tag_value(tags.get("toilets") or "")
+
+    place_out = {
+        "id": f"{osm_type}/{osm_id}" if osm_type and osm_id else "",
+        "osm_type": osm_type or "",
+        "osm_id": int(osm_id) if osm_id else None,
+        "name": name,
+        "category": category,
+        "address": address,
+        "lat": float(pl_lat),
+        "lon": float(pl_lon),
+        "opening_hours": opening_hours,
+        "cuisine": cuisine,
+        "wheelchair": wheelchair,
+        "takeaway": takeaway,
+        "delivery": delivery,
+        "smoking": smoking,
+        "toilets": toilets,
+        "contact": contact,
+        "image": img_url,
+        "gallery": gallery,
+        "wiki_extract": wiki_extract,
+        "maps_url": _build_maps_url(pl_lat, pl_lon),
+        "tags": {
+            # safe subset (professional)
+            "brand": _clean_tag_value(tags.get("brand") or ""),
+            "operator": _clean_tag_value(tags.get("operator") or ""),
+            "level": _clean_tag_value(tags.get("level") or ""),
+            "addr:street": _clean_tag_value(tags.get("addr:street") or ""),
+            "addr:housenumber": _clean_tag_value(tags.get("addr:housenumber") or ""),
+            "addr:postcode": _clean_tag_value(tags.get("addr:postcode") or ""),
+            "addr:city": _clean_tag_value(tags.get("addr:city") or ""),
+            "addr:state": _clean_tag_value(tags.get("addr:state") or ""),
+        }
+    }
+
+    if cache_key:
+        _cache_set(cache_key, place_out)
+
+    return jsonify({"ok": True, "place": place_out})
 
 
 @app.route("/api/recommend", methods=["POST"])
@@ -1124,20 +1895,33 @@ def recommend():
         return jsonify([])
 
     data = request.json
-    mood = data.get("mood")
+    mood = (data.get("mood") or "").strip()
     user_lat = data.get("latitude")
     user_lon = data.get("longitude")
+
+    if mood not in ["work", "date", "quick_bite", "budget"]:
+        return jsonify([])
 
     if not user_lat or not user_lon:
         return jsonify([])
 
-    tags = MOOD_TAGS.get(mood, [])
-    if not tags:
-        return jsonify([])
+    radius = 4500
+    if mood == "work":
+        radius = 6000
+    if mood == "quick_bite":
+        radius = 4000
+    if mood == "budget":
+        radius = 6500
 
-    raw = fetch_places(tags, user_lat, user_lon, 5000)
+    raw = fetch_places_for_mood(mood, user_lat, user_lon, radius)
+
+    if not raw:
+        time.sleep(0.7)
+        raw = fetch_places_for_mood(mood, user_lat, user_lon, radius)
 
     places = []
+    seen = set()
+
     for i, p in enumerate(raw):
         t = p.get("tags", {})
         lat = p.get("lat")
@@ -1145,12 +1929,28 @@ def recommend():
         if not lat or not lon:
             continue
 
+        # ✅ CRITICAL FIX: strict mood filter
+        if not _hard_filter_place(mood, t):
+            continue
+
+        osm_id = p.get("id", i)
+        pid = f"osm_{osm_id}"
+        if pid in seen:
+            continue
+        seen.add(pid)
+
         distance = round(haversine(user_lat, user_lon, lat, lon), 2)
-        category = t.get("amenity") or t.get("leisure") or "place"
-        name = t.get("name", category.title())
+        category = t.get("amenity") or t.get("leisure") or t.get("office") or "place"
+        name = t.get("name", (category or "place").replace("_", " ").title())
+
+        if not name or name.strip().lower() in ["cafe", "restaurant", "fast food", "place"]:
+            if distance > 1.2:
+                continue
+
+        score = _score_place(mood, t, float(distance))
 
         places.append({
-            "place_id": f"osm_{p.get('id', i)}",
+            "place_id": pid,
             "name": name,
             "category": category,
             "distance": distance,
@@ -1159,9 +1959,18 @@ def recommend():
             "opening_hours": t.get("opening_hours", None),
             "phone": t.get("phone", t.get("contact:phone", None)),
             "website": t.get("website", t.get("contact:website", None)),
+            "_score": score,
+
+            # ✅ NEW: needed for place details system
+            "osm_type": p.get("type", "node"),
+            "osm_id": osm_id
         })
 
-    places.sort(key=lambda x: x["distance"])
+    places.sort(key=lambda x: (-x["_score"], x["distance"]))
+
+    for p in places:
+        p.pop("_score", None)
+
     return jsonify(places[:30])
 
 

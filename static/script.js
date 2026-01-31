@@ -90,7 +90,7 @@ animateParticles();
 
 /* =========================================================
   ✅ LOCATION (HARD FIX: works on Desktop + Mobile)
-  ========================================================= */
+========================================================= */
 
 const findBtn = document.getElementById("findBtn");
 let lastGeoFixAt = 0;
@@ -255,7 +255,7 @@ function reachTimes(distanceKm) {
 
 /* =========================================================
   ✅ Mood explain helper
-  ========================================================= */
+========================================================= */
 
 function txt(s) {
   return String(s || "").toLowerCase().trim();
@@ -470,7 +470,7 @@ function renderSavedGrouped() {
 
 /* =========================================================
    ✅ Place Details System
-   ========================================================= */
+========================================================= */
 
 async function fetchPlaceDetails(place) {
   try {
@@ -556,8 +556,95 @@ function formatAddressShort(addr) {
 }
 
 /* =========================================================
-   ✅ MODAL SYSTEM (Animation + Focus Trap + No iframe reload)
-   ========================================================= */
+   ✅ IMAGE RESOLVER SYSTEM (Fix place images)
+========================================================= */
+
+function safeStr(x) {
+  return String(x || "").trim();
+}
+
+function looksLikeUrl(s) {
+  const u = safeStr(s);
+  return u.startsWith("http://") || u.startsWith("https://");
+}
+
+function normalizeCommonsFileName(s) {
+  return safeStr(s).replace(/^File:/i, "").trim();
+}
+
+async function fetchWikiThumbFromWikipediaTag(wikipediaTag) {
+  try {
+    const raw = safeStr(wikipediaTag);
+    if (!raw) return "";
+
+    let title = raw;
+    if (raw.includes(":")) {
+      title = raw.split(":").slice(1).join(":");
+    }
+    title = title.replaceAll(" ", "_");
+
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+    const r = await fetch(url);
+    const d = await r.json();
+
+    const thumb = d?.thumbnail?.source || "";
+    return looksLikeUrl(thumb) ? thumb : "";
+  } catch {
+    return "";
+  }
+}
+
+async function fetchThumbFromCommonsFile(fileName) {
+  try {
+    const file = normalizeCommonsFileName(fileName);
+    if (!file) return "";
+
+    const url = `https://commons.wikimedia.org/w/api.php?origin=*&action=query&titles=File:${encodeURIComponent(file)}&prop=imageinfo&iiprop=url&iiurlwidth=1200&format=json`;
+    const r = await fetch(url);
+    const d = await r.json();
+
+    const pages = d?.query?.pages || {};
+    const firstKey = Object.keys(pages)[0];
+    const page = pages[firstKey];
+
+    const thumb = page?.imageinfo?.[0]?.thumburl || "";
+    return looksLikeUrl(thumb) ? thumb : "";
+  } catch {
+    return "";
+  }
+}
+
+async function resolvePlaceImage(details, place) {
+  const tags = details?.tags || {};
+
+  const direct = safeStr(details?.image);
+  if (looksLikeUrl(direct)) return direct;
+
+  const tagImg = safeStr(tags?.image);
+  if (looksLikeUrl(tagImg)) return tagImg;
+
+  const commons = safeStr(tags?.wikimedia_commons);
+  if (commons) {
+    // can be "File:Something.jpg" OR "Category:..."
+    if (commons.toLowerCase().startsWith("file:")) {
+      const thumb = await fetchThumbFromCommonsFile(commons);
+      if (thumb) return thumb;
+    }
+  }
+
+  const wiki = safeStr(tags?.wikipedia);
+  if (wiki) {
+    const thumb = await fetchWikiThumbFromWikipediaTag(wiki);
+    if (thumb) return thumb;
+  }
+
+  // if nothing found
+  return "";
+}
+
+/* =========================================================
+   ✅ MODAL SYSTEM
+========================================================= */
 
 const modal = document.getElementById("modal");
 const backdrop = document.getElementById("modalBackdrop");
@@ -567,7 +654,7 @@ let modalOpen = false;
 let lastFocusedEl = null;
 let focusTrapHandler = null;
 
-/* cache iframe src so it doesn't reload */
+// cache iframe src so it doesn't reload
 let lastMapIframeSrc = "";
 
 function lockScroll(lock) {
@@ -619,6 +706,7 @@ function disableFocusTrap() {
 function openModalShell() {
   if (!backdrop || !modal) return;
 
+  // ✅ reset any stuck state
   backdrop.classList.remove("active");
   modal.classList.remove("active");
 
@@ -655,93 +743,16 @@ function closeModalShell() {
     if (lastFocusedEl && typeof lastFocusedEl.focus === "function") {
       try { lastFocusedEl.focus(); } catch { }
     }
-
   }, 220);
 }
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    if (modalOpen) closeModal();
-    if (isReqOpen()) closeReqPanel();
-  }
+  if (!modalOpen) return;
+  if (e.key === "Escape") closeModal();
 });
 
 if (backdrop) backdrop.addEventListener("click", closeModal);
 if (modal) modal.addEventListener("click", (e) => e.stopPropagation());
-
-function showModalLoader(place) {
-  const pinned = isFav(place);
-  const bbox = `${place.lon - 0.015},${place.lat - 0.01},${place.lon + 0.015},${place.lat + 0.01}`;
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${place.lat},${place.lon}`;
-
-  lastMapIframeSrc = mapUrl;
-
-  modalInner.innerHTML = `
-    <div class="modalTop">
-      <div>
-        <h2 class="modalTitle">${place.name}</h2>
-        <div class="modalMeta">
-          <span class="badge">${(place.distance === "Saved") ? "Saved" : `${place.distance} km`}</span>
-          <span class="badge">${(place.category || "place").replaceAll("_", " ")}</span>
-          <span class="badge">Loading details…</span>
-        </div>
-      </div>
-
-      <div style="display:flex; gap:10px;">
-        <div class="iconBtn" id="modalPinBtn" title="Save">${pinned ? "★" : "☆"}</div>
-        <div class="iconBtn" id="modalCloseBtn" title="Close">✕</div>
-      </div>
-    </div>
-
-    <div style="
-      margin-top:14px;
-      border-radius:18px;
-      border:1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.05);
-      overflow:hidden;
-      height:170px;
-      position:relative;
-    " class="skeleton"></div>
-
-    <div class="modalBody">
-      <div class="modalMap">
-        <iframe loading="lazy" src="${mapUrl}"></iframe>
-      </div>
-
-      <div class="detailsBox">
-        <h3 class="detailsTitle">Place Details</h3>
-
-        <div style="margin-top:12px;">
-          <div class="skeleton" style="height:58px;border-radius:18px;"></div>
-          <div class="skeleton" style="height:58px;border-radius:18px;margin-top:12px;"></div>
-          <div class="skeleton" style="height:58px;border-radius:18px;margin-top:12px;"></div>
-        </div>
-
-        <div class="modalActions" style="opacity:.65">
-          <a class="linkBtn" target="_blank" href="https://www.google.com/maps?q=${place.lat},${place.lon}">
-            Navigate →
-          </a>
-        </div>
-      </div>
-    </div>
-  `;
-
-  const closeBtn = document.getElementById("modalCloseBtn");
-  if (closeBtn) closeBtn.onclick = closeModal;
-
-  const pinBtn = document.getElementById("modalPinBtn");
-  if (pinBtn) {
-    pinBtn.onclick = async () => {
-      await toggleFav(place);
-      pinBtn.innerText = isFav(place) ? "★" : "☆";
-    };
-  }
-
-  setTimeout(() => {
-    const btn = document.getElementById("modalCloseBtn");
-    if (btn) btn.focus();
-  }, 50);
-}
 
 function buildMapsUrl(lat, lon) {
   return `https://www.google.com/maps?q=${lat},${lon}`;
@@ -792,11 +803,14 @@ async function sharePlace(placeDetails, fallbackPlace) {
   }
 }
 
+function closeModal() {
+  closeModalShell();
+}
+
 async function openModal(place) {
   const pinned = isFav(place);
 
   openModalShell();
-  showModalLoader(place);
 
   const details = await fetchPlaceDetails(place);
 
@@ -810,119 +824,100 @@ async function openModal(place) {
   lastMapIframeSrc = finalMapSrc;
 
   const category = (details?.category || place.category || "place").replaceAll("_", " ");
-  const address = details?.address || "";
-  const shortAddr = formatAddressShort(address);
+  const addressRaw = safeStr(details?.address);
+  const address = addressRaw ? addressRaw : "Not available";
+  const shortAddr = formatAddressShort(addressRaw);
 
-  const phone = details?.phone || "";
+  const phone = safeStr(details?.phone);
   const website = safeLink(details?.website || "");
 
-  const cuisine = details?.cuisine || "";
-  const opening_hours = details?.opening_hours || place.opening_hours || "";
-
-  const img = details?.image || "";
+  const cuisine = safeStr(details?.cuisine);
+  const opening_hours = safeStr(details?.opening_hours || place.opening_hours);
 
   const tags = details?.tags || {};
-  const wheelchair = tags?.wheelchair || "";
-  const takeaway = tags?.takeaway || "";
-  const outdoor = tags?.outdoor_seating || "";
-  const smoking = tags?.smoking || "";
-  const toilets = tags?.toilets || tags?.["toilets:wheelchair"] || "";
+  const wheelchair = safeStr(tags?.wheelchair);
+  const takeaway = safeStr(tags?.takeaway);
+  const outdoor = safeStr(tags?.outdoor_seating);
+  const smoking = safeStr(tags?.smoking);
+  const toilets = safeStr(tags?.toilets || tags?.["toilets:wheelchair"]);
 
-  let openState = null;
+  let openBadge = `<span class="badge">Timings not available</span>`;
   if (opening_hours) {
-    openState = getOpenStatus({ opening_hours, lat, lon });
+    const openState = getOpenStatus({ opening_hours, lat, lon });
+    if (openState && !openState.unknown) {
+      openBadge = `
+        <span class="statusBadge">
+          <span class="statusDot ${openState.open ? "openDot" : "closedDot"}"></span>
+          ${openState.open ? "Open now" : "Closed now"}
+        </span>
+        <span class="badge">${openState.label}</span>
+      `;
+    } else {
+      openBadge = `<span class="badge">Hours: ${opening_hours}</span>`;
+    }
   }
 
-  let openBadge = "";
-  if (openState && !openState.unknown) {
-    openBadge = `
-      <span class="statusBadge">
-        <span class="statusDot ${openState.open ? "openDot" : "closedDot"}"></span>
-        ${openState.open ? "Open now" : "Closed now"}
-      </span>
-      <span class="badge">${openState.label}</span>
-    `;
-  } else {
-    openBadge = `<span class="badge">Timings not available</span>`;
-  }
+
+  const pinnedIcon = pinned ? "★" : "☆";
 
   let contactRows = "";
-  contactRows += renderDetailRow("Address", shortAddr || "Not available", "📍");
-  if (phone) {
-    contactRows += renderDetailRow("Phone", `<a style="color:white;font-weight:1000;text-decoration:none" href="tel:${phone}">${phone}</a>`, "📞");
-  }
-  if (website) {
-    contactRows += renderDetailRow("Website", `<a style="color:white;font-weight:1000;text-decoration:none" target="_blank" href="${website}">${website.replace("https://", "").replace("http://", "")}</a>`, "🌐");
-  }
-  if (opening_hours) {
-    contactRows += renderDetailRow("Opening hours", `<span style="opacity:.92">${opening_hours}</span>`, "🕒");
-  }
-  if (cuisine) {
-    contactRows += renderDetailRow("Cuisine", `${cuisine}`, "🍽️");
-  }
+contactRows += renderDetailRow("Address", shortAddr || "Not available", "📍");
 
-  const chips = `
-    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-      ${renderTagChip("Category", category)}
-      ${wheelchair ? renderTagChip("Wheelchair", wheelchair) : ""}
-      ${toilets ? renderTagChip("Toilets", toilets) : ""}
-      ${takeaway ? renderTagChip("Takeaway", takeaway) : ""}
-      ${outdoor ? renderTagChip("Outdoor seating", outdoor) : ""}
-      ${smoking ? renderTagChip("Smoking", smoking) : ""}
-    </div>
-  `;
+if (phone) {
+  contactRows += renderDetailRow(
+    "Phone",
+    `<a style="color:white;font-weight:1000;text-decoration:none" href="tel:${phone}">${phone}</a>`,
+    "📞"
+  );
+}
+
+if (website) {
+  contactRows += renderDetailRow(
+    "Website",
+    `<a style="color:white;font-weight:1000;text-decoration:none" target="_blank" href="${website}">
+      ${website.replace("https://", "").replace("http://", "")}
+    </a>`,
+    "🌐"
+  );
+}
+
+if (opening_hours) {
+  contactRows += renderDetailRow("Opening hours", opening_hours, "🕒");
+}
+
+if (cuisine) {
+  contactRows += renderDetailRow("Cuisine", cuisine, "🍽️");
+}
+
+const chips = `
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+    ${renderTagChip("Category", category)}
+    ${wheelchair ? renderTagChip("Wheelchair", wheelchair) : ""}
+    ${toilets ? renderTagChip("Toilets", toilets) : ""}
+    ${takeaway ? renderTagChip("Takeaway", takeaway) : ""}
+    ${outdoor ? renderTagChip("Outdoor seating", outdoor) : ""}
+    ${smoking ? renderTagChip("Smoking", smoking) : ""}
+  </div>
+`;
+
 
   modalInner.innerHTML = `
-    <div class="modalTop">
-      <div>
-        <h2 class="modalTitle">${details?.name || place.name}</h2>
-        <div class="modalMeta">
+    <div class="modalTop" style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;">
+      <div style="min-width:0;">
+        <h2 class="modalTitle" style="margin:0;font-size:20px;font-weight:1000;letter-spacing:-.2px;">
+          ${details?.name || place.name}
+        </h2>
+
+        <div class="modalMeta" style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
           <span class="badge">${(place.distance === "Saved") ? "Saved" : `${place.distance} km`}</span>
           <span class="badge">${category}</span>
           ${openBadge}
         </div>
       </div>
 
-      <div style="display:flex; gap:10px;">
-        <div class="iconBtn" id="modalPinBtn" title="Save">${pinned ? "★" : "☆"}</div>
+      <div style="display:flex; gap:10px; flex-shrink:0;">
+        <div class="iconBtn" id="modalPinBtn" title="Save">${pinnedIcon}</div>
         <div class="iconBtn" id="modalCloseBtn" title="Close">✕</div>
-      </div>
-    </div>
-
-    <div style="
-      margin-top:14px;
-      border-radius:18px;
-      border:1px solid rgba(255,255,255,0.14);
-      overflow:hidden;
-      background: rgba(255,255,255,0.04);
-      height:170px;
-      position:relative;
-    ">
-      <img src="${img}" alt="place image" loading="lazy"
-        style="width:100%;height:100%;object-fit:cover;display:block;opacity:.92;"
-        onerror="this.style.display='none';"
-      />
-      <div style="
-        position:absolute; inset:0;
-        background: linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.65));
-      "></div>
-      <div style="
-        position:absolute; left:16px; right:16px; bottom:14px;
-        display:flex; justify-content:space-between; gap:12px; align-items:flex-end;
-      ">
-        <div style="min-width:0;">
-          <div style="font-weight:1000;font-size:14px;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-            ${details?.name || place.name}
-          </div>
-          <div style="margin-top:5px;font-size:12px;opacity:.78;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-            ${shortAddr || address || ""}
-          </div>
-        </div>
-
-        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
-          <button class="smallBtn primary" id="mmNavBtn" style="padding:10px 14px;border-radius:14px;">Navigate</button>
-          <button class="smallBtn" id="mmShareBtn" style="padding:10px 14px;border-radius:14px;">Share</button>
-        </div>
       </div>
     </div>
 
@@ -957,6 +952,7 @@ async function openModal(place) {
     </div>
   `;
 
+
   const closeBtn = document.getElementById("modalCloseBtn");
   if (closeBtn) closeBtn.onclick = closeModal;
 
@@ -969,7 +965,9 @@ async function openModal(place) {
   }
 
   const navBtn = document.getElementById("mmNavBtn");
-  if (navBtn) navBtn.onclick = () => window.open(details?.maps || buildMapsUrl(lat, lon), "_blank");
+  if (navBtn) {
+    navBtn.onclick = () => window.open(details?.maps || buildMapsUrl(lat, lon), "_blank");
+  }
 
   const shareBtn = document.getElementById("mmShareBtn");
   if (shareBtn) {
@@ -985,7 +983,7 @@ async function openModal(place) {
   const copyAddr = document.getElementById("mmCopyAddr");
   if (copyAddr) {
     copyAddr.onclick = async () => {
-      const ok = await copyToClipboard(address || shortAddr || "");
+      const ok = await copyToClipboard(addressRaw || "Not available");
       const old = copyAddr.innerText;
       copyAddr.innerText = ok ? "✅ Copied" : "Copy failed";
       setTimeout(() => copyAddr.innerText = old, 1200);
@@ -996,10 +994,6 @@ async function openModal(place) {
     const btn = document.getElementById("modalCloseBtn");
     if (btn) btn.focus();
   }, 60);
-}
-
-function closeModal() {
-  closeModalShell();
 }
 
 /* search listener */
@@ -1111,23 +1105,14 @@ function renderPlaces(data) {
       card.style.setProperty("--my", `${my}%`);
     });
 
-    const openBtn = card.querySelector(".openBtn");
-    if (openBtn) {
-      openBtn.onclick = (e) => {
-        e.stopPropagation();
-        openModal(p);
-      };
-    }
-
+    // ✅ FIX: ensure req modal overlay never blocks card clicks
+    card.querySelector(".openBtn").onclick = (e) => { e.stopPropagation(); openModal(p); };
     card.onclick = () => openModal(p);
 
-    const pinBtn = card.querySelector(".pinBtn");
-    if (pinBtn) {
-      pinBtn.onclick = async (e) => {
-        e.stopPropagation();
-        await toggleFav(p);
-      };
-    }
+    card.querySelector(".pinBtn").onclick = async (e) => {
+      e.stopPropagation();
+      await toggleFav(p);
+    };
 
     results.appendChild(card);
   });
@@ -1157,10 +1142,7 @@ function showNoPlacesMessage() {
   `;
 }
 
-/* =========================================================
-  ✅ Find places (Fixed: waits for fresh GPS + smart retry)
-  ========================================================= */
-
+/* ✅ Find places */
 async function findPlaces() {
   if (loading) return;
   loading = true;
@@ -1174,6 +1156,7 @@ async function findPlaces() {
 
   try {
     const ok = await ensureFreshLocation(10000);
+
     if (!ok || !isLocationValid()) {
       showNoPlacesMessage();
       return;
@@ -1221,22 +1204,18 @@ setInterval(() => {
   if (lastPlaces.length) renderPlacesFiltered();
 }, 30000);
 
-const moodSel = document.getElementById("mood");
-if (moodSel) {
-  moodSel.addEventListener("change", () => {
-    const mood = document.getElementById("mood").value;
-    applyMoodTheme(mood);
-    lastPlaces = [];
-    document.getElementById("results").innerHTML = `<div style="opacity:.65; padding:50px 0; text-align:center;">Click <b>Find nearby places</b> to load new recommendations.</div>`;
-  });
-}
+document.getElementById("mood").addEventListener("change", () => {
+  const mood = document.getElementById("mood").value;
+  applyMoodTheme(mood);
+  lastPlaces = [];
+  document.getElementById("results").innerHTML = `<div style="opacity:.65; padding:50px 0; text-align:center;">Click <b>Find nearby places</b> to load new recommendations.</div>`;
+});
 
 /* ===================== PROFILE + REQUESTS ===================== */
 
 const myProfileBtn = document.getElementById("myProfileBtn");
 const copyProfileBtn = document.getElementById("copyProfileBtn");
 
-/* ✅ Fix: always set correct username from backend */
 async function hydrateMyUsername() {
   try {
     const r = await fetch("/api/profile/me");
@@ -1251,7 +1230,6 @@ async function hydrateMyUsername() {
   return window.MOODMAP_USERNAME || "";
 }
 
-/* ✅ Robust clipboard copy */
 async function copyTextSmart(text) {
   try {
     if (navigator.clipboard && window.isSecureContext) {
@@ -1314,9 +1292,7 @@ async function copyTextSmart(text) {
   }
 })();
 
-/* =========================================================
-   ✅ Follow Requests: Bottom-Right Floating Panel (NO BLOCKING)
-   ========================================================= */
+/* ===================== FOLLOW REQUESTS (Bottom Corner Panel) ===================== */
 
 const reqBtn = document.getElementById("reqBtn");
 const reqCount = document.getElementById("reqCount");
@@ -1325,139 +1301,41 @@ const reqModal = document.getElementById("reqModal");
 const reqCloseBtn = document.getElementById("reqCloseBtn");
 const reqList = document.getElementById("reqList");
 
-/* Inject pro styles for bottom-right panel */
-(function injectReqPanelCSS() {
-  const css = `
-  #reqBackdrop{
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    opacity: 0;
-  }
-  #reqModal{
-    position: fixed !important;
-    right: 22px !important;
-    bottom: 22px !important;
-    left: auto !important;
-    top: auto !important;
+function forceFollowReqPanelStyle() {
+  if (!reqBackdrop || !reqModal) return;
 
-    width: min(440px, 92vw);
-    max-height: 52vh;
-    overflow: hidden;
-
-    border-radius: 22px;
-    border: 1px solid rgba(255,255,255,0.16);
-    background: linear-gradient(180deg, rgba(22,25,40,0.92), rgba(0,0,0,0.82));
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-
-    box-shadow:
-      0 40px 140px rgba(0,0,0,0.70),
-      0 1px 0 rgba(255,255,255,0.05) inset;
-
-    z-index: 9997;
-    transform: translateY(18px) scale(0.98);
-    opacity: 0;
-    pointer-events: none;
-
-    transition: transform 220ms cubic-bezier(.2,1,.2,1),
-                opacity 220ms cubic-bezier(.2,1,.2,1);
-  }
-
-  #reqModal.active{
-    transform: translateY(0) scale(1);
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  #reqModal .reqInner{
-    padding: 16px 16px 14px;
-  }
-
-  #reqModal .reqTitle{
-    margin:0;
-    font-weight:1000;
-    font-size:15px;
-    letter-spacing:-0.2px;
-  }
-
-  #reqModal .reqSub{
-    margin-top:5px;
-    font-size:12px;
-    opacity:.68;
-  }
-
-  #reqModal .reqList{
-    margin-top: 12px;
-    max-height: calc(52vh - 90px);
-    overflow: auto;
-    padding-right: 4px;
-  }
-  #reqModal .reqList::-webkit-scrollbar{ width: 8px; }
-  #reqModal .reqList::-webkit-scrollbar-thumb{
-    background: rgba(255,255,255,0.14);
-    border-radius: 999px;
-  }
-
-  #reqCloseBtn.reqClose{
-    margin-left:auto;
-    width:38px;
-    height:38px;
-    border-radius:14px;
-    border:1px solid rgba(255,255,255,0.14);
-    background:rgba(255,255,255,0.08);
-    cursor:pointer;
-    font-weight:1000;
-  }
-
-  .reqEmptyGood{
-    display:flex;
-    gap:10px;
-    align-items:center;
-    padding:14px 14px;
-    border-radius:18px;
-    border:1px solid rgba(255,255,255,0.10);
-    background: rgba(0,0,0,0.20);
-    font-size:13px;
-    opacity: .9;
-  }
-
-  .reqEmptyGood .dot{
-    width:10px;height:10px;border-radius:50%;
-    background:#22c55e;
-    box-shadow:0 0 20px rgba(34,197,94,0.35);
-    flex:0 0 auto;
-  }
-  `;
-  const style = document.createElement("style");
-  style.innerHTML = css;
-  document.head.appendChild(style);
-})();
-
-function isReqOpen() {
-  return reqModal && reqModal.classList.contains("active");
-}
-
-function openReqPanel() {
-  if (!reqModal) return;
-  reqModal.classList.add("active");
-}
-
-function closeReqPanel() {
-  if (!reqModal) return;
-  reqModal.classList.remove("active");
-}
-
-/* Make sure backdrop NEVER blocks clicks */
-if (reqBackdrop) {
+  // ✅ Ensure it never blocks page clicks
   reqBackdrop.style.pointerEvents = "none";
-  reqBackdrop.style.opacity = "0";
+  reqBackdrop.classList.remove("active");
+
+  // ✅ Bottom right floating panel
+  reqModal.style.position = "fixed";
+  reqModal.style.right = "22px";
+  reqModal.style.bottom = "22px";
+  reqModal.style.left = "auto";
+  reqModal.style.top = "auto";
+  reqModal.style.transform = "none";
+  reqModal.style.width = "min(420px, calc(100vw - 40px))";
+  reqModal.style.maxHeight = "55vh";
+  reqModal.style.overflow = "auto";
+  reqModal.style.zIndex = "99999";
+  reqModal.style.borderRadius = "22px";
+  reqModal.style.border = "1px solid rgba(255,255,255,0.16)";
+  reqModal.style.background = "linear-gradient(180deg, rgba(20,22,35,0.90), rgba(0,0,0,0.72))";
+  reqModal.style.backdropFilter = "blur(18px)";
+  reqModal.style.webkitBackdropFilter = "blur(18px)";
+  reqModal.style.boxShadow = "0 40px 120px rgba(0,0,0,0.75)";
 }
 
-if (reqCloseBtn) {
-  reqCloseBtn.onclick = closeReqPanel;
+function openReqModal() {
+  forceFollowReqPanelStyle();
+  if (reqModal) reqModal.classList.add("active");
 }
+function closeReqModal() {
+  if (reqModal) reqModal.classList.remove("active");
+}
+
+if (reqCloseBtn) reqCloseBtn.onclick = closeReqModal;
 
 async function fetchRequests() {
   try {
@@ -1480,15 +1358,7 @@ async function fetchRequests() {
 
     reqList.innerHTML = "";
     if (!n) {
-      reqList.innerHTML = `
-        <div class="reqEmptyGood">
-          <span class="dot"></span>
-          <div>
-            <div style="font-weight:1000;">No pending requests right now.</div>
-            <div style="opacity:.68;font-size:12px;margin-top:4px;">You’re all caught up ✅</div>
-          </div>
-        </div>
-      `;
+      reqList.innerHTML = `<div style="opacity:.75;font-size:13px;padding:16px;">✅ No pending requests right now.</div>`;
       return;
     }
 
@@ -1537,11 +1407,11 @@ async function fetchRequests() {
 if (reqBtn) {
   reqBtn.onclick = async () => {
     await fetchRequests();
-    openReqPanel();
+    openReqModal();
   };
 }
 
-/* poll requests (Render-safe + no spam) */
+/* poll requests */
 function canPollRequests() {
   if (document.visibilityState !== "visible") return false;
   if (!reqBtn || !reqCount) return false;
@@ -1568,7 +1438,6 @@ function stopFollowRequestPolling() {
   }
 }
 
-/* init requests */
 (function initRequests() {
   startFollowRequestPolling();
 

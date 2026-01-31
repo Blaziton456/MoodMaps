@@ -512,18 +512,6 @@
           <div class="name">{{profile_name}}</div>
           <div class="user">@{{profile_username}}</div>
 
-          <!-- ✅ Followers/Following counts -->
-          <div class="ffRow">
-            <div class="ffPill" id="followersPill" title="View followers">
-              <span class="ffNum" id="followersCount">—</span>
-              <span class="ffLabel">Followers</span>
-            </div>
-            <div class="ffPill" id="followingPill" title="View following">
-              <span class="ffNum" id="followingCount">—</span>
-              <span class="ffLabel">Following</span>
-            </div>
-          </div>
-
           <div class="metaRow">
             <span class="badge">Mood: {{current_mood}}</span>
             <span class="badge">{% if is_private %}Private{% else %}Public{% endif %}</span>
@@ -693,11 +681,6 @@ shareBtn.onclick = async ()=>{
 
 /* ===================== FOLLOWERS/FOLLOWING UI ===================== */
 
-const followersCount = document.getElementById("followersCount");
-const followingCount = document.getElementById("followingCount");
-const followersPill = document.getElementById("followersPill");
-const followingPill = document.getElementById("followingPill");
-
 const ffBackdrop = document.getElementById("ffBackdrop");
 const ffModal = document.getElementById("ffModal");
 const ffCloseBtn = document.getElementById("ffCloseBtn");
@@ -782,17 +765,6 @@ function applySearchFilter(list){
     const b = (u.name || "").toLowerCase();
     return a.includes(q) || b.includes(q);
   });
-}
-
-async function refreshStats(){
-  try{
-    const r = await fetch(`/api/follow/stats?username=${encodeURIComponent(PROFILE_USERNAME)}`);
-    const d = await r.json();
-    if(d && d.success){
-      followersCount.innerText = d.followers;
-      followingCount.innerText = d.following;
-    }
-  }catch(e){}
 }
 
 function renderFFList(list, mode){
