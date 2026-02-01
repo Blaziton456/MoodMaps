@@ -116,7 +116,7 @@ body.mood-budget .scene-budget{opacity:1}
   inset:0;
   z-index:-7;
   pointer-events:none;
-  opacity:0.06;
+  opacity:0.025;
   background-image:url("https://grainy-gradients.vercel.app/noise.svg");
   mix-blend-mode: overlay;
 }
@@ -268,10 +268,10 @@ header{
   border-radius:24px;
   padding:18px;
   border:1px solid rgba(255,255,255,0.14);
-  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-  backdrop-filter: blur(18px);
+  background: rgba(15,18,30,0.88);
+  backdrop-filter: blur(14px);
   box-shadow:
-    0 30px 120px rgba(0,0,0,0.40),
+    0 30px 120px rgba(0,0,0,0.45),
     0 1px 0 rgba(255,255,255,0.05) inset;
 }
 
@@ -327,19 +327,69 @@ button:disabled{
 .card{
   position:relative;
   overflow:hidden;
-  border-radius:24px;
-  padding:18px 18px 16px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow:
-    0 22px 80px rgba(0,0,0,0.40),
-    0 1px 0 rgba(255,255,255,0.04) inset;
-  cursor:pointer;
+  border-radius:22px;
+  padding:18px;
   min-height:190px;
-  transition: transform .22s ease, box-shadow .22s ease, border .22s ease;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,0.04),
+      rgba(255,255,255,0.01)
+    ),
+    rgba(18,22,36,0.88);
+
+  border:1px solid rgba(255,255,255,0.14);
+  backdrop-filter: blur(16px);
+
+  box-shadow:
+    0 14px 45px rgba(0,0,0,0.45),
+    0 1px 0 rgba(255,255,255,0.04) inset;
+
+  /* entrance only */
+  opacity:0;
+  animation: cardIn 420ms cubic-bezier(.2,.8,.2,1) forwards;
+  animation-fill-mode: both;
+  will-change: transform;
+
+  transition:
+    transform .28s cubic-bezier(.2,.8,.2,1),
+    box-shadow .28s cubic-bezier(.2,.8,.2,1),
+    border-color .28s ease;
 }
+
+
+@keyframes cardIn{
+  from{
+    transform: translateY(14px) scale(0.985);
+    opacity:0;
+  }
+  to{
+    transform:none;
+    opacity:1;
+  }
+}
+
+
+/* stagger */
+.card:nth-child(1){ animation-delay:0ms }
+.card:nth-child(2){ animation-delay:40ms }
+.card:nth-child(3){ animation-delay:80ms }
+.card:nth-child(4){ animation-delay:120ms }
+.card:nth-child(5){ animation-delay:160ms }
+.card:nth-child(6){ animation-delay:200ms }
+
+/* hover = float, not jump */
+.card:hover{
+  transform: translateY(-3px) scale(1.002);
+  border-color: rgba(167,139,250,0.35);
+
+  box-shadow:
+    0 28px 80px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(167,139,250,0.22);
+}
+
+
 
 /* actions */
 .actions{
@@ -431,6 +481,22 @@ button:disabled{
   opacity: 1;
   pointer-events: auto;
 }
+
+#modalInner{
+  animation: modalInnerIn 360ms cubic-bezier(.2,.8,.2,1);
+}
+
+@keyframes modalInnerIn{
+  from{
+    opacity:0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to{
+    opacity:1;
+    transform:none;
+  }
+}
+
 
 /* ===========================================================
    ✅ Floating Follow Requests Panel (Bottom-right corner)
@@ -584,13 +650,16 @@ button:disabled{
   justify-content:space-between;
   align-items:flex-start;
   gap:12px;
+  padding-bottom:14px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
 }
 
 .splitTitle{
-  font-size:20px;
+  font-size:22px;
   font-weight:1000;
-  letter-spacing:-0.3px;
+  letter-spacing:-0.4px;
 }
+
 
 .splitMeta{
   margin-top:6px;
@@ -616,11 +685,28 @@ button:disabled{
   padding:12px;
   border-radius:16px;
 
-  background: rgba(0,0,0,0.22);
-  border:1px solid rgba(255,255,255,0.10);
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.04),
+    rgba(0,0,0,0.22)
+  );
+
+  border:1px solid rgba(255,255,255,0.12);
+  box-shadow:
+    0 10px 30px rgba(0,0,0,0.35),
+    0 1px 0 rgba(255,255,255,0.04) inset;
 
   font-size:13px;
+  transition: transform .18s ease, box-shadow .18s ease;
 }
+
+.infoRow:hover{
+  transform: translateY(-1px);
+  box-shadow:
+    0 18px 45px rgba(0,0,0,0.45),
+    0 1px 0 rgba(255,255,255,0.06) inset;
+}
+
 
 .infoIcon{
   width:28px;
@@ -648,6 +734,103 @@ button:disabled{
   font-weight:1000;
 }
 
+/* ===========================================================
+   ✅ FIXED SAVED PLACES ROW (PILL STYLE)
+=========================================================== */
+
+#savedWrap{
+  margin-top: 26px;
+}
+
+/* section wrapper */
+.savedSection{
+  margin-bottom: 18px;
+}
+
+/* header */
+.savedSectionTitle{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+  font-size:13px;
+  font-weight:900;
+  opacity:.9;
+}
+
+/* horizontal scroll row */
+.carousel{
+  display:flex;
+  gap:12px;
+  overflow-x:auto;
+  padding-top: 4px;  
+  padding-bottom:6px;
+  scroll-snap-type:x mandatory;
+}
+
+.carousel::-webkit-scrollbar{
+  height:6px;
+}
+.carousel::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,0.14);
+  border-radius:999px;
+}
+
+/* 🔥 THE PILL CARD */
+.pinCard{
+  flex:0 0 auto;
+  height:56px;              /* ⬆ bigger */
+  padding:0 20px;           /* ⬆ more breathing room */
+  border-radius:16px;       /* ⬛ squarer (was 999px) */
+
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+
+  background: rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.14);
+  backdrop-filter: blur(14px);
+
+  cursor:pointer;
+  white-space:nowrap;
+
+  transition:
+    transform .24s cubic-bezier(.2,.8,.2,1),
+    background .24s ease,
+    border-color .24s ease;
+}
+
+.pinCard:hover{
+  transform:translateY(-1px);
+  background: rgba(255,255,255,0.10);
+  border-color: var(--accent);
+}
+
+/* text */
+.pinCardTitle{
+  font-size:13px;
+  font-weight:900;
+  line-height:1.2;
+}
+
+.pinCardMeta{
+  font-size:11px;
+  opacity:.65;
+  margin-top:2px;
+}
+
+
+  .splitMap::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.06),
+    inset 0 -60px 80px rgba(0,0,0,0.45);
+}
+
+
 /* MOBILE FALLBACK */
 @media (max-width: 860px){
   .modalInner.splitModal{
@@ -655,6 +838,7 @@ button:disabled{
   }
   .splitMap{
     min-height:300px;
+    border-right:1px solid rgba(255,255,255,0.10);
   }
 }
 

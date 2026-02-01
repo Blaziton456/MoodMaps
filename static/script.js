@@ -900,57 +900,61 @@ const chips = `
 `;
 
 
-  modalInner.innerHTML = `
-    <div class="modalTop" style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;">
-      <div style="min-width:0;">
-        <h2 class="modalTitle" style="margin:0;font-size:20px;font-weight:1000;letter-spacing:-.2px;">
-          ${details?.name || place.name}
-        </h2>
+ modalInner.innerHTML = `
+  <div class="splitMap">
+    <iframe loading="lazy" src="${finalMapSrc}"></iframe>
+  </div>
 
-        <div class="modalMeta" style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-          <span class="badge">${(place.distance === "Saved") ? "Saved" : `${place.distance} km`}</span>
+  <div class="splitDetails">
+    <div class="splitHeader">
+      <div>
+        <div class="splitTitle">
+          ${details?.name || place.name}
+        </div>
+
+        <div class="splitMeta">
+          <span class="badge">
+            ${(place.distance === "Saved") ? "Saved" : `${place.distance} km`}
+          </span>
           <span class="badge">${category}</span>
-          ${openBadge}
+          ${openBadge || ""}
         </div>
       </div>
 
-      <div style="display:flex; gap:10px; flex-shrink:0;">
-        <div class="iconBtn" id="modalPinBtn" title="Save">${pinnedIcon}</div>
+      <div style="display:flex;gap:10px;">
+        <div class="iconBtn" id="modalPinBtn" title="Save">
+          ${pinnedIcon}
+        </div>
         <div class="iconBtn" id="modalCloseBtn" title="Close">✕</div>
       </div>
     </div>
 
-    <div class="modalBody">
-      <div class="modalMap">
-        <iframe loading="lazy" src="${finalMapSrc}"></iframe>
-      </div>
-
-      <div class="detailsBox">
-        <h3 class="detailsTitle">Place Details</h3>
-
-        <div class="detailsText">
-          ${contactRows}
-        </div>
-
-        <div style="margin-top:10px;">
-          <div style="font-weight:1000;font-size:13px;opacity:.78;margin-bottom:10px;">More Info</div>
-          ${chips}
-        </div>
-
-        <div class="modalActions">
-          <a class="linkBtn" target="_blank"
-            href="${details?.maps || `https://www.google.com/maps?q=${lat},${lon}`}">
-            Navigate →
-          </a>
-
-          <a class="linkBtn" href="javascript:void(0)" id="mmCopyAddr">
-            Copy address →
-          </a>
-        </div>
+    <div class="infoRow">
+      <div class="infoIcon">📍</div>
+      <div>
+        <b>Address</b><br>
+        ${details?.address || "Not available"}
       </div>
     </div>
-  `;
 
+    ${contactRows ? `
+    <div class="infoRow">
+      <div class="infoIcon">☎️</div>
+      <div>${contactRows}</div>
+    </div>` : ""}
+
+    <div class="splitActions">
+      <a class="linkBtn" target="_blank"
+        href="${details?.maps || `https://www.google.com/maps?q=${lat},${lon}`}">
+        Navigate →
+      </a>
+
+      <a class="linkBtn" href="javascript:void(0)" id="mmCopyAddr">
+        Copy address →
+      </a>
+    </div>
+  </div>
+`;
 
   const closeBtn = document.getElementById("modalCloseBtn");
   if (closeBtn) closeBtn.onclick = closeModal;
