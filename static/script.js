@@ -830,22 +830,25 @@
     const pinnedIcon = pinned ? "★" : "☆";
 
     // ✅ Mini map embed (safe + lightweight)
-    const miniMap = `
-      <div class="cleanSection">
-        <div class="cleanSectionTitle">Location</div>
-        <div style="
-          border-radius:16px;
-          overflow:hidden;
-          border:1px solid rgba(255,255,255,0.12);
-        ">
-          <iframe
-            src="https://www.openstreetmap.org/export/embed.html?marker=${lat},${lon}&zoom=16"
-            style="width:100%; height:220px; border:none;"
-            loading="lazy">
-          </iframe>
-        </div>
-      </div>
-    `;
+    const delta = 0.002; // controls zoom level (smaller = more zoom)
+
+const miniMap = `
+  <div class="cleanSection">
+    <div class="cleanSectionTitle">Location</div>
+    <div style="
+      border-radius:16px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,0.12);
+    ">
+      <iframe
+        src="https://www.openstreetmap.org/export/embed.html?bbox=${lon-delta},${lat-delta},${lon+delta},${lat+delta}&layer=mapnik&marker=${lat},${lon}"
+        style="width:100%; height:220px; border:none;"
+        loading="lazy">
+      </iframe>
+    </div>
+  </div>
+`;
+
 
     modalInner.innerHTML = `
       <div class="cleanHeader">

@@ -9,24 +9,23 @@
 
 <style>
 :root{
-  --accent:#a78bfa;
-  --accent2:#22d3ee;
-  --accent-soft:rgba(167,139,250,0.26);
+  --bg-main:#0f0b10;
+  --bg-panel:#18121a;
+  --bg-soft:#1f1722;
 
-  --text:#e5e7eb;
-  --muted:rgba(255,255,255,0.66);
+  --accent:#ffb4a2;          /* peach */
+  --accent2:#cdb4db;         /* lavender */
+  --accent-soft: rgba(255,180,162,0.25);
 
-  --bg1:#0ea5e9;
-  --bg2:#0b1020;
-  --bg3:#a78bfa;
+  --text:#f2e9e4;
+  --muted:#c9b8b2;
 
-  --particle:200,230,255;
+  --border: rgba(255,255,255,0.12);
+  --border2: rgba(255,255,255,0.18);
 
-  --glass:rgba(255,255,255,0.06);
-  --glass2:rgba(255,255,255,0.04);
-  --border:rgba(255,255,255,0.12);
-  --border2:rgba(255,255,255,0.18);
+  --particle:255,220,200;
 }
+
 
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -35,9 +34,155 @@ body{
   margin:0;
   font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
   color:var(--text);
-  background:#000;
   overflow-x:hidden;
+
+  background:
+    /* main soft glow */
+    radial-gradient(
+      1200px 700px at 50% 35%,
+      rgba(255,180,162,0.20),
+      transparent 60%
+    ),
+
+    /* left blush */
+    radial-gradient(
+      900px 900px at -15% 50%,
+      rgba(205,180,219,0.16),
+      transparent 65%
+    ),
+
+    /* right blush */
+    radial-gradient(
+      900px 900px at 115% 50%,
+      rgba(255,180,162,0.14),
+      transparent 65%
+    ),
+
+    /* bottom depth */
+    radial-gradient(
+      900px 600px at 50% 110%,
+      rgba(0,0,0,0.75),
+      transparent 70%
+    ),
+
+    /* base */
+    linear-gradient(
+      180deg,
+      #0e0a11,
+      #120d16 45%,
+      #0e0a11
+    );
 }
+
+body[data-mood="work"]{
+  --bg-accent: rgba(255,180,162,0.12);
+}
+body[data-mood="date"]{
+  --bg-accent: rgba(251,113,133,0.18);
+}
+body[data-mood="quick_bite"]{
+  --bg-accent: rgba(34,211,238,0.18);
+}
+body[data-mood="budget"]{
+  --bg-accent: rgba(148,163,184,0.18);
+}
+
+.focusGlow{
+  background:
+    radial-gradient(
+      600px 400px at 50% 48%,
+      var(--bg-accent),
+      transparent 70%
+    );
+}
+
+
+.bgOrbs{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -9;
+}
+
+.bgOrb{
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.22;
+  animation: floatOrb 26s ease-in-out infinite alternate;
+}
+
+.bgOrb.peach{
+  background: rgba(255,180,162,0.45);
+  left: 10%;
+  top: 20%;
+}
+
+.bgOrb.lavender{
+  background: rgba(205,180,219,0.45);
+  right: 12%;
+  bottom: 18%;
+  animation-delay: -10s;
+}
+
+@keyframes floatOrb{
+  from{ transform: translateY(-40px); }
+  to{ transform: translateY(40px); }
+}
+
+
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255,180,162,0.05), transparent 60%),
+    radial-gradient(circle at 80% 70%, rgba(205,180,219,0.05), transparent 60%);
+  animation: drift 18s linear infinite alternate;
+  z-index:-12;
+}
+
+body::after{
+  content:"";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -10;
+  background:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 80px 80px;
+  opacity: 0.12;
+}
+
+.vignette{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -8;
+  background: radial-gradient(
+    circle at center,
+    transparent 55%,
+    rgba(0,0,0,0.55) 100%
+  );
+  animation: breathe 12s ease-in-out infinite;
+}
+
+@keyframes breathe{
+  from{ opacity: 0.55; }
+  to{ opacity: 0.75; }
+}
+
+
+
+@keyframes drift{
+  from{ transform: translateY(-20px); }
+  to{ transform: translateY(20px); }
+}
+
 
 /* ===========================================================
    ✅ FULL MOOD BACKGROUND SCENES (not just tint)
@@ -62,10 +207,15 @@ body{
 /* WORK */
 .scene-work{
   background:
-    radial-gradient(circle at 18% 18%, rgba(56,189,248,0.22), transparent 55%),
-    radial-gradient(circle at 72% 42%, rgba(96,165,250,0.18), transparent 60%),
-    radial-gradient(circle at 52% 82%, rgba(34,211,238,0.12), transparent 60%),
-    linear-gradient(180deg, rgba(0,0,0,0.9), rgba(7,12,30,1));
+    radial-gradient(circle at 18% 22%, rgba(255,180,162,0.22), transparent 55%),
+    radial-gradient(circle at 72% 40%, rgba(205,180,219,0.20), transparent 60%),
+    radial-gradient(circle at 50% 82%, rgba(255,180,162,0.14), transparent 60%),
+    linear-gradient(
+      180deg,
+      #0e0a11,
+      #120d16 45%,
+      #0e0a11
+    );
 }
 
 /* DATE */
@@ -111,14 +261,20 @@ body.mood-budget .scene-budget{opacity:1}
   transition: opacity .4s ease;
 }
 
+#particles{
+  filter: hue-rotate(-20deg) saturate(0.6) brightness(0.9);
+  opacity:0.35;
+}
+
+
 .noise{
   position:fixed;
   inset:0;
   z-index:-7;
   pointer-events:none;
-  opacity:0.025;
+  opacity:0.02;
   background-image:url("https://grainy-gradients.vercel.app/noise.svg");
-  mix-blend-mode: overlay;
+  mix-blend-mode: soft-light;
 }
 
 /* keep old element (script still uses it) */
@@ -136,7 +292,17 @@ body.mood-budget .scene-budget{opacity:1}
   max-width:1180px;
   margin:auto;
   padding:46px 26px 130px;
+  
 }
+
+.emptyHint{
+  margin-top: 80px;
+  text-align: center;
+  font-size: 14px;
+  opacity: 0.45;
+  letter-spacing: 0.3px;
+}
+
 
 /* ================= Header ================= */
 header{
@@ -255,7 +421,7 @@ header{
   border-radius:20px;
   border:1px solid rgba(255,255,255,0.16);
   background: linear-gradient(180deg, rgba(25,30,45,0.94), rgba(10,12,20,0.86));
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(8px);
   box-shadow: 0 50px 150px rgba(0,0,0,0.80);
   overflow:hidden;
   display:none;
@@ -343,7 +509,7 @@ button:disabled{
   backdrop-filter: blur(16px);
 
   box-shadow:
-    0 14px 45px rgba(0,0,0,0.45),
+    0 30px 90px rgba(0,0,0,0.75),
     0 1px 0 rgba(255,255,255,0.04) inset;
 
   /* entrance only */
@@ -352,12 +518,16 @@ button:disabled{
   animation-fill-mode: both;
   will-change: transform;
 
+  cursor:pointer;
   transition:
-    transform .28s cubic-bezier(.2,.8,.2,1),
-    box-shadow .28s cubic-bezier(.2,.8,.2,1),
-    border-color .28s ease;
+    transform .22s cubic-bezier(.2,.9,.2,1),
+    box-shadow .22s ease,
+    border-color .22s ease;
 }
 
+.card:active{
+  transform: scale(0.97);
+}
 
 @keyframes cardIn{
   from{
@@ -369,6 +539,20 @@ button:disabled{
     opacity:1;
   }
 }
+
+.card::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 55%);
+  opacity:0;
+  transition: opacity .25s ease;
+}
+
+.card:active::after{
+  opacity:1;
+}
+
 
 
 /* stagger */
@@ -446,10 +630,12 @@ button:disabled{
   -webkit-backdrop-filter: blur(16px);
   transition: opacity 240ms cubic-bezier(.2,1,.2,1);
 }
+
 #modalBackdrop.active{
   opacity: 1;
   pointer-events: auto;
 }
+
 #modal{
   position: fixed;
   left: 50%;
@@ -458,8 +644,8 @@ button:disabled{
   z-index: 9999;
 
   width: min(980px, 92vw);
-  max-height: 86vh;
-  overflow: auto;
+  max-height: 90vh;
+  overflow: hidden; /* ✅ IMPORTANT */
 
   border-radius: 26px;
   border: 1px solid rgba(255,255,255,0.18);
@@ -472,17 +658,21 @@ button:disabled{
   opacity: 0;
   pointer-events: none;
 
-  transition: transform 260ms cubic-bezier(.2,1.05,.2,1),
-              opacity 260ms cubic-bezier(.2,1.05,.2,1);
-
-  will-change: transform, opacity;
+  transition:
+    transform 220ms cubic-bezier(.18,.9,.25,1),
+    opacity 180ms ease;
 }
+
+
 #modal.active{
   opacity: 1;
   pointer-events: auto;
+  transform: translate(-50%,-50%) scale(1);
 }
 
 #modalInner{
+  max-height: calc(90vh - 60px);
+  overflow-y: auto;
   animation: modalInnerIn 360ms cubic-bezier(.2,.8,.2,1);
 }
 
@@ -518,8 +708,8 @@ button:disabled{
   border-radius: 22px;
   border: 1px solid rgba(255,255,255,0.16);
   background: linear-gradient(180deg, rgba(20,22,35,0.92), rgba(0,0,0,0.75));
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 
   box-shadow: 0 40px 140px rgba(0,0,0,0.82);
 
@@ -777,8 +967,6 @@ button:disabled{
   flex-direction:column;
   gap:18px;
   padding:22px;
-  max-height:86vh;
-  overflow-y:auto;
 }
 
 /* header */
@@ -936,6 +1124,300 @@ button:disabled{
     inset 0 -60px 80px rgba(0,0,0,0.45);
 }
 
+#modal {
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+#modalInner {
+  max-height: calc(90vh - 60px);
+  overflow-y: auto;
+}
+
+.panel,
+.card,
+#modal{
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,0.035),
+      rgba(255,255,255,0.015)
+    ),
+    var(--bg-panel);
+
+  border:1px solid var(--border);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+}
+
+button,
+.linkBtn,
+.topBtn{
+  background: linear-gradient(135deg,var(--accent),var(--accent2)) !important;
+  color:#2b1f23 !important;
+  font-weight:900;
+  border-radius:18px;
+}
+
+
+button:hover,
+.linkBtn:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 20px 50px rgba(255,180,162,0.35);
+}
+
+select,
+input[type="text"]{
+  background: var(--bg-soft);
+  border:1px solid var(--border);
+  color:var(--text);
+  border-radius:18px;
+  padding:12px 16px;
+}
+
+select:focus,
+input:focus{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255,180,162,0.25);
+}
+
+.welcomeChip{
+  background: rgba(255,180,162,0.12);
+  color: var(--text);
+  border:1px solid rgba(255,180,162,0.25);
+}
+
+.badge{
+  background: rgba(205,180,219,0.18);
+  border:1px solid rgba(205,180,219,0.35);
+  color: var(--text);
+}
+
+.sceneLayer{
+  filter: saturate(0.75) brightness(0.9);
+}
+
+
+body.mood-work .sceneLayer{
+  filter: hue-rotate(-10deg) saturate(0.7) brightness(0.85);
+}
+
+body.mood-date .sceneLayer{
+  filter: hue-rotate(12deg) saturate(0.85) brightness(0.9);
+}
+
+body.mood-budget .sceneLayer{
+  filter: saturate(0.4) brightness(0.8);
+}
+
+.moodScene{
+  display:none;
+}
+
+.bottomFade{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 220px;
+  pointer-events: none;
+  z-index: -6;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(0,0,0,0.85)
+  );
+}
+
+.focusGlow{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -9;
+  background:
+    radial-gradient(
+      600px 400px at 50% 48%,
+      rgba(255,180,162,0.08),
+      transparent 70%
+    );
+}
+
+.sideGlow{
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 260px;
+  pointer-events: none;
+  z-index: -9;
+}
+
+.sideGlow.left{
+  left: 0;
+  background: radial-gradient(
+    120% 60% at 0% 50%,
+    rgba(255,180,162,0.14),
+    transparent 70%
+  );
+}
+
+.sideGlow.right{
+  right: 0;
+  background: radial-gradient(
+    120% 60% at 100% 50%,
+    rgba(205,180,219,0.14),
+    transparent 70%
+  );
+}
+
+/* =========================================
+   🌌 Ambient Floating + Parallax FX
+========================================= */
+
+.ambientFX{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -6;
+  overflow: hidden;
+}
+
+.fx{
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.18;
+  animation: floatFX 30s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* individual personalities */
+.fx1{
+  background: rgba(255,180,162,0.55);
+  left: -6%;
+  top: 18%;
+}
+.fx2{
+  background: rgba(205,180,219,0.55);
+  right: -8%;
+  top: 32%;
+  animation-delay: -8s;
+}
+.fx3{
+  background: rgba(255,180,162,0.45);
+  left: -10%;
+  bottom: 14%;
+  animation-delay: -14s;
+}
+.fx4{
+  background: rgba(205,180,219,0.45);
+  right: -6%;
+  bottom: 18%;
+  animation-delay: -20s;
+}
+
+@keyframes floatFX{
+  from{ transform: translateY(-40px); }
+  to{ transform: translateY(40px); }
+}
+
+
+.bgAction{
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: .35;
+  cursor: pointer;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse{
+  0%{transform:scale(1)}
+  50%{transform:scale(1.3)}
+  100%{transform:scale(1)}
+}
+
+.mapFlowLayer{
+  position: fixed;
+  inset: 0;
+  z-index: -11;
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.mapFlowLayer svg{
+  width: 100%;
+  height: 100%;
+}
+
+/* route lines */
+.route{
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.25;
+
+  animation: routeFloat 18s ease-in-out infinite alternate;
+}
+
+.r2{
+  animation-duration: 26s;
+  opacity: 0.18;
+}
+
+@keyframes routeFloat{
+  0%{
+    transform: translateY(0);
+    opacity: 0.18;
+  }
+  50%{
+    opacity: 0.28;
+  }
+  100%{
+    transform: translateY(-12px);
+    opacity: 0.18;
+  }
+}
+
+
+.r1{ stroke: var(--accent); }
+.r2{
+  stroke: var(--accent2);
+  animation-duration: 28s;
+}
+
+/* pulses */
+.pulse{
+  fill: var(--accent);
+  opacity: 0.35;
+  animation: pulse 4.5s ease-out infinite;
+}
+
+@keyframes pulse{
+  0%{ r:4; opacity:.25 }
+  70%{ r:18; opacity:0 }
+  100%{ r:18; opacity:0 }
+}
+
+.p2{
+  fill: var(--accent2);
+  animation-delay: 1.2s;
+}
+
+@keyframes routeMove{
+  from{ stroke-dashoffset: 0; }
+  to{ stroke-dashoffset: -200; }
+}
+
+@keyframes pulse{
+  0%{ r:6; opacity:.6; }
+  70%{ r:22; opacity:0; }
+  100%{ r:22; opacity:0; }
+}
+
+
 
 /* MOBILE FALLBACK */
 @media (max-width: 860px){
@@ -959,6 +1441,62 @@ button:disabled{
     <div class="sceneLayer scene-quick"></div>
     <div class="sceneLayer scene-budget"></div>
   </div>
+
+  <div class="bgOrbs">
+    <div class="bgOrb peach"></div>
+    <div class="bgOrb lavender"></div>
+  </div>
+
+  <div class="mapFlowLayer">
+  <svg viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice">
+    <!-- route lines -->
+    <path class="route r1"
+      d="M-50,300 C200,200 400,400 650,280 900,160 1150,300 1300,240" />
+    <path class="route r2"
+      d="M-40,420 C220,360 380,500 620,420 860,340 1080,460 1280,380" />
+
+    <!-- location pulses -->
+    <circle class="pulse p1" cx="360" cy="260" r="6"/>
+    <circle class="pulse p2" cx="780" cy="340" r="6"/>
+  </svg>
+</div>
+
+
+  <div class="vignette"></div>
+
+  <div class="bottomFade"></div>
+
+  <div class="focusGlow"></div>
+
+  <div class="sideGlow left"></div>
+  <div class="sideGlow right"></div>
+
+  <div class="ambientChip" id="ambientChip"></div>
+
+  
+
+  <div class="ambientFX">
+    <span class="fx fx1"></span>
+    <span class="fx fx2"></span>
+    <span class="fx fx3"></span>
+    <span class="fx fx4"></span>
+    <span class="bgAction" data-mood="date" style="top:30%;left:6%"></span>
+    <span class="bgAction" data-mood="work" style="bottom:20%;right:8%"></span>
+  </div>
+
+  <div class="spaceLayer">
+    <span class="planet planet1"></span>
+    <span class="planet planet2"></span>
+    <span class="planet planet3"></span>
+
+    <span class="comet"></span>
+
+    <span class="star s1"></span>
+    <span class="star s2"></span>
+    <span class="star s3"></span>
+    <span class="star s4"></span>
+  </div>
+
 
   <!-- keep for compatibility -->
   <div id="moodGradient" class="moodGradient"></div>
@@ -1032,5 +1570,107 @@ button:disabled{
   <script>window.MOODMAP_USERNAME = "{{user_username}}";</script>
   <script src="https://unpkg.com/opening_hours@3.6.0/opening_hours.min.js"></script>
   <script src="/static/script.js"></script>
+
+  <script>
+    const fx = document.querySelectorAll(".fx");
+
+    document.addEventListener("mousemove", e => {
+      const x = (e.clientX / window.innerWidth - 0.5) * 30;
+      const y = (e.clientY / window.innerHeight - 0.5) * 30;
+
+     fx.forEach((el, i) => {
+       const factor = (i + 1) * 0.25;
+        el.style.transform = `translate(${x * factor}px, ${y * factor}px)`;
+     });
+   });
+  
+   document.querySelectorAll(".bgAction").forEach(el=>{
+  el.onclick = ()=>{
+    moodSelect.value = el.dataset.mood;
+    moodSelect.dispatchEvent(new Event("change"));
+  };
+});
+
+window.addEventListener("scroll", () => {
+  document.body.style.backgroundPosition =
+    `center ${window.scrollY * 0.15}px`;
+});
+
+ /* =========================
+   Mood-based background
+========================= */
+const moodSelect = document.getElementById("mood");
+
+if (moodSelect) {
+  moodSelect.addEventListener("change", e => {
+    document.body.setAttribute("data-mood", e.target.value);
+  });
+}
+
+/* =========================
+   Empty results hint
+========================= */
+const hint = document.getElementById("contextHint");
+const results = document.getElementById("results");
+
+if (hint && results) {
+  const observer = new MutationObserver(() => {
+    hint.style.display = results.children.length ? "none" : "block";
+  });
+  observer.observe(results, { childList: true });
+}
+
+/* =========================
+   Background mood dots
+========================= */
+document.querySelectorAll(".bgAction").forEach(el => {
+  el.addEventListener("click", () => {
+    if (moodSelect) {
+      moodSelect.value = el.dataset.mood;
+      moodSelect.dispatchEvent(new Event("change"));
+    }
+  });
+});
+
+/* =========================
+   Scroll parallax
+========================= */
+window.addEventListener("scroll", () => {
+  document.body.style.backgroundPosition =
+    `center ${window.scrollY * 0.15}px`;
+});
+
+  const mapFlow = document.querySelector(".mapFlowLayer");
+
+  document.addEventListener("mousemove", e => {
+    if(!mapFlow) return;
+
+    const x = (e.clientX / innerWidth - 0.5) * 12;
+    const y = (e.clientY / innerHeight - 0.5) * 12;
+
+    mapFlow.style.transform = `translate(${x}px, ${y}px)`;
+  });
+
+  const layer = document.querySelector(".mapFlowLayer");
+  let tx = 0, ty = 0, cx = 0, cy = 0;
+
+  document.addEventListener("mousemove", e => {
+    tx = (e.clientX / innerWidth - 0.5) * 10;
+    ty = (e.clientY / innerHeight - 0.5) * 10;
+  });
+
+  function animate(){
+    cx += (tx - cx) * 0.04;
+    cy += (ty - cy) * 0.04;
+
+    if(layer){
+      layer.style.transform = `translate(${cx}px, ${cy}px)`;
+    }
+    requestAnimationFrame(animate);
+  }
+  animate();
+
+  </script>
+
 </body>
 </html>
