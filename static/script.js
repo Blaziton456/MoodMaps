@@ -35,56 +35,70 @@
   }
 
   /* particles */
-  const canvas = document.getElementById("particles");
-  const ctx = canvas.getContext("2d");
+    const canvas = document.getElementById("particles");
+    const ctx = canvas ? canvas.getContext("2d") : null;
+
+
   let W = 0, H = 0, particles = [];
 
   function resizeCanvas() {
+    if (!canvas) return;
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
-  }
+}
+
   window.addEventListener("resize", resizeCanvas);
   resizeCanvas();
 
-  function initParticles() {
-    particles = [];
-    const count = Math.min(48, Math.floor((W * H) / 50000));
-    for (let i = 0; i < count; i++) {
-      particles.push({
-        x: Math.random() * W,
-        y: Math.random() * H,
-        r: Math.random() * 2 + 0.6,
-        vx: (Math.random() - 0.5) * 0.18,
-        vy: (Math.random() - 0.5) * 0.18,
-        a: Math.random() * 0.22 + 0.10
-      });
-    }
+function initParticles() {
+  if (!ctx) return;
+
+  particles = [];
+  const count = Math.min(48, Math.floor((W * H) / 50000));
+
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 2 + 0.6,
+      vx: (Math.random() - 0.5) * 0.18,
+      vy: (Math.random() - 0.5) * 0.18,
+      a: Math.random() * 0.22 + 0.10
+    });
   }
+}
+
   initParticles();
 
-  function animateParticles() {
-    ctx.clearRect(0, 0, W, H);
-    ctx.globalCompositeOperation = "lighter";
+function animateParticles() {
+  if (!ctx) return;
 
-    const rgb = getComputedStyle(document.documentElement).getPropertyValue("--particle").trim() || "200,230,255";
+  ctx.clearRect(0, 0, W, H);
+  ctx.globalCompositeOperation = "lighter";
 
-    for (const p of particles) {
-      p.x += p.vx;
-      p.y += p.vy;
+  const rgb =
+    getComputedStyle(document.documentElement)
+      .getPropertyValue("--particle")
+      .trim() || "200,230,255";
 
-      if (p.x < 0) p.x = W;
-      if (p.x > W) p.x = 0;
-      if (p.y < 0) p.y = H;
-      if (p.y > H) p.y = 0;
+  for (const p of particles) {
+    p.x += p.vx;
+    p.y += p.vy;
 
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${rgb},${p.a})`;
-      ctx.fill();
-    }
+    if (p.x < 0) p.x = W;
+    if (p.x > W) p.x = 0;
+    if (p.y < 0) p.y = H;
+    if (p.y > H) p.y = 0;
 
-    requestAnimationFrame(animateParticles);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${rgb},${p.a})`;
+    ctx.fill();
   }
+
+  requestAnimationFrame(animateParticles);
+}
+
   animateParticles();
 
   /* =========================================================
@@ -170,38 +184,44 @@
     });
   }
 
-  if (findBtn) {
-    setFindBtnState(true, "Getting location…");
-    findBtn.onclick = findPlaces;
+if (findBtn) {
+  setFindBtnState(true, "Getting location…");
+  findBtn.onclick = findPlaces;
 
-    if (navigator.geolocation) {
-      navigator.geolocation.watchPosition(
-        (pos) => {
-          userLat = pos.coords.latitude;
-          userLon = pos.coords.longitude;
-          lastGeoFixAt = Date.now();
-          lastGeoAcc = pos.coords.accuracy;
+  /* 🔑 HARD FIX: force one location fetch */
+  (async () => {
+    const ok = await forceGetLocationOnce(8000);
 
-          if (!ready) {
-            ready = true;
-            setFindBtnState(false, "Find nearby places");
-          } else if (!loading) {
-            setFindBtnState(false);
-          }
+    // Never trap user
+    setFindBtnState(false, "Find nearby places");
 
-          console.log("📍 watchPosition:", userLat, userLon, "acc:", lastGeoAcc);
-        },
-        (err) => {
-          console.log("❌ watchPosition error:", err);
-          ready = false;
-          setFindBtnState(false, "Find nearby places");
-        },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
-      );
-    } else {
-      setFindBtnState(false, "Find nearby places");
+    if (!ok) {
+      console.warn("⚠️ Location slow/unavailable, user can retry");
     }
+  })();
+
+  /* secondary: keep watchPosition only as enhancer */
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(
+      (pos) => {
+        userLat = pos.coords.latitude;
+        userLon = pos.coords.longitude;
+        lastGeoFixAt = Date.now();
+        lastGeoAcc = pos.coords.accuracy;
+        ready = true;
+
+        if (!loading) setFindBtnState(false, "Find nearby places");
+      },
+      (err) => {
+        console.warn("watchPosition error:", err);
+        setFindBtnState(false, "Find nearby places");
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+    );
   }
+}
+
+
 
   /* time helper */
   function pad2(n) { return String(n).padStart(2, "0"); }
@@ -951,86 +971,118 @@ const miniMap = `
   }
 
   /* render cards */
-  function renderPlaces(data) {
-    const results = document.getElementById("results");
-    results.innerHTML = "";
+function renderPlaces(data) {
+  const results = document.getElementById("results");
+  results.innerHTML = "";
 
-    if (!data.length) {
-      results.innerHTML = `<div style="opacity:.65; padding:50px 0; text-align:center;">No results found.</div>`;
-      return;
+  if (!data.length) {
+    results.innerHTML = `
+      <div style="opacity:.65; padding:50px 0; text-align:center;">
+        No results found.
+      </div>
+    `;
+    return;
+  }
+
+  const mood = document.getElementById("mood").value;
+
+  data.forEach(p => {
+    const pinned = isFav(p);
+    const st = getOpenStatus(p);
+    const times = reachTimes(p.distance);
+    const why = explainWhy(mood, p);
+
+    // ✅ correct scope
+    const placeId = placeStableId(p);
+    const title = p.name;
+
+    let statusHTML = "";
+    if (!st.unknown) {
+      statusHTML = `
+        <span class="statusBadge">
+          <span class="statusDot ${st.open ? "openDot" : "closedDot"}"></span>
+          ${st.open ? "Open now" : "Closed now"}
+        </span>
+        <span class="badge">${st.label}</span>
+      `;
     }
 
-    const mood = document.getElementById("mood").value;
-
-    data.forEach(p => {
-      const pinned = isFav(p);
-      const st = getOpenStatus(p);
-      const times = reachTimes(p.distance);
-      const why = explainWhy(mood, p);
-
-      let statusHTML = "";
-      if (!st.unknown) {
-        statusHTML = `
-          <span class="statusBadge">
-            <span class="statusDot ${st.open ? "openDot" : "closedDot"}"></span>
-            ${st.open ? "Open now" : "Closed now"}
-          </span>
-          <span class="badge">${st.label}</span>
-        `;
-      }
-
-      let reachHTML = "";
-      if (times) {
-        reachHTML = `
-          <div class="reachRow">
-            🛵 <b>${times.scooterMin} min</b> &nbsp; • &nbsp; 🚶 <b>${times.walkMin} min</b>
-          </div>
-        `;
-      }
-
-      const card = document.createElement("div");
-      card.className = "card";
-
-      card.innerHTML = `
-        <div class="actions">
-          <div class="iconBtn pinBtn ${pinned ? "pinned" : ""}" title="Save">${pinned ? "★" : "☆"}</div>
-          <div class="iconBtn openBtn" title="Open">↗</div>
+    let reachHTML = "";
+    if (times) {
+      reachHTML = `
+        <div class="reachRow">
+          🛵 <b>${times.scooterMin} min</b> &nbsp; • &nbsp; 🚶 <b>${times.walkMin} min</b>
         </div>
-
-        <h3 class="cardTitle">${p.name}</h3>
-
-        <div class="badgeRow">
-          <span class="kmBadge"><span class="kmDot"></span>${p.distance} km</span>
-          <span class="badge">${(p.category || "place").replaceAll("_", " ")}</span>
-          ${statusHTML}
-        </div>
-
-        ${reachHTML}
-
-        <div class="aiTag"><span class="aiDot"></span>AI Pick</div>
-        <div class="aiLine">${why}</div>
       `;
+    }
 
-      card.addEventListener("mousemove", (e) => {
-        const r = card.getBoundingClientRect();
-        const mx = ((e.clientX - r.left) / r.width) * 100;
-        const my = ((e.clientY - r.top) / r.height) * 100;
-        card.style.setProperty("--mx", `${mx}%`);
-        card.style.setProperty("--my", `${my}%`);
-      });
+    const card = document.createElement("div");
+    card.className = "card";
 
-      // ✅ FIX: ensure req modal overlay never blocks card clicks
-      card.querySelector(".openBtn").onclick = (e) => { e.stopPropagation(); openModal(p); };
-      card.onclick = () => openModal(p);
+    card.innerHTML = `
+      <div class="actions">
+        <div class="iconBtn pinBtn ${pinned ? "pinned" : ""}" title="Save">
+          ${pinned ? "★" : "☆"}
+        </div>
+        <div class="iconBtn openBtn" title="Open">↗</div>
+      </div>
 
-      card.querySelector(".pinBtn").onclick = async (e) => {
-        e.stopPropagation();
-        await toggleFav(p);
-      };
+      <h3 class="cardTitle">${p.name}</h3>
 
-      results.appendChild(card);
+      <div class="badgeRow">
+        <span class="kmBadge"><span class="kmDot"></span>${p.distance} km</span>
+        <span class="badge">${(p.category || "place").replaceAll("_", " ")}</span>
+        ${statusHTML}
+      </div>
+
+      ${reachHTML}
+
+      <div class="aiTag"><span class="aiDot"></span>AI Pick</div>
+      <div class="aiLine">${why}</div>
+    `;
+
+    /* 🎯 CARD → TAB OPEN */
+    card.addEventListener("click", () => {
+      card.classList.add("toTab");
+
+      setTimeout(() => {
+        openPlaceTab(placeId, title);
+
+        const tab = document.querySelector(`.tab[data-place="${placeId}"]`);
+        if (tab) {
+          tab.classList.add("snap");
+          setTimeout(() => tab.classList.remove("snap"), 400);
+        }
+
+        card.classList.remove("toTab");
+      }, 420);
     });
-  }
+
+    /* ✨ mouse glow */
+    card.addEventListener("mousemove", (e) => {
+      const r = card.getBoundingClientRect();
+      const mx = ((e.clientX - r.left) / r.width) * 100;
+      const my = ((e.clientY - r.top) / r.height) * 100;
+      card.style.setProperty("--mx", `${mx}%`);
+      card.style.setProperty("--my", `${my}%`);
+    });
+
+    /* ❌ stop bubbling */
+    card.querySelector(".openBtn").onclick = (e) => {
+      e.stopPropagation();
+      openModal(p);
+    };
+
+    card.querySelector(".pinBtn").onclick = async (e) => {
+      e.stopPropagation();
+      await toggleFav(p);
+    };
+
+    results.appendChild(card);
+  });
+}
+
+
 
   /* ✅ update current mood on backend */
   async function setCurrentMood(mood) {
@@ -1205,3 +1257,5 @@ const miniMap = `
       };
     }
   })();
+
+
