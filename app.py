@@ -1570,6 +1570,7 @@ def _extract_contact(tags: dict):
     }
 
 
+
 def _reverse_geocode_nominatim(lat, lon):
     """
     Returns:
@@ -1782,7 +1783,8 @@ def api_place_details():
         cache_key = f"{osm_type}/{osm_id}"
         cached = _cache_get(cache_key)
         if cached:
-            return jsonify({"ok": True, "place": cached})
+            return jsonify({"success": True, "place": cached})
+
 
     element = None
     tags = {}
@@ -1809,6 +1811,8 @@ def api_place_details():
                 pl_lat = c.get("lat")
                 pl_lon = c.get("lon")
 
+                
+
     # ================= fallback coords =================
     if pl_lat is None and lat is not None:
         pl_lat = _safe_float(lat)
@@ -1818,23 +1822,27 @@ def api_place_details():
     if pl_lat is None or pl_lon is None:
         return jsonify({"ok": False, "message": "Missing coordinates"}), 400
 
-    # ================= reverse geocode =================
-    rev = _reverse_geocode_nominatim(pl_lat, pl_lon)
-    address = ""
-    if rev:
-        address = rev.get("display_name") or ""
+# ================= reverse geocode (cached) =================
+    addr_cache_key = f"addr:{round(pl_lat,5)},{round(pl_lon,5)}"
+    cached_addr = _cache_get(addr_cache_key)
+    if cached_addr:
+        address = cached_addr
     else:
-        address = ""
+        rev = _reverse_geocode_nominatim(pl_lat, pl_lon)
+        address = rev.get("display_name", "") if rev else ""
+        _cache_set(addr_cache_key, address)
 
+# ================= category & name (ALWAYS RUN) =================
     category = _pick_category_from_tags(tags)
     if not category and fallback_category:
         category = fallback_category
-
     name = (tags.get("name") or "").strip()
     if not name:
         name = fallback_name or ""
     if not name:
         name = (category or "place").replace("_", " ").title()
+
+
 
     # ================= image =================
     img_url, gallery, wiki_extract = _resolve_place_image(tags, category)
@@ -1848,6 +1856,10 @@ def api_place_details():
     delivery = _clean_tag_value(tags.get("delivery") or "")
     smoking = _clean_tag_value(tags.get("smoking") or "")
     toilets = _clean_tag_value(tags.get("toilets") or "")
+    # fallback: prevent undefined opening_hours
+    if not opening_hours and fallback_category:
+        opening_hours = ""
+
 
     place_out = {
         "id": f"{osm_type}/{osm_id}" if osm_type and osm_id else "",
@@ -1870,6 +1882,9 @@ def api_place_details():
         "gallery": gallery,
         "wiki_extract": wiki_extract,
         "maps_url": _build_maps_url(pl_lat, pl_lon),
+        "phone": contact.get("phone", ""),
+        "website": contact.get("website", ""),
+        "email": contact.get("email", ""),
         "tags": {
             # safe subset (professional)
             "brand": _clean_tag_value(tags.get("brand") or ""),
@@ -1886,7 +1901,8 @@ def api_place_details():
     if cache_key:
         _cache_set(cache_key, place_out)
 
-    return jsonify({"ok": True, "place": place_out})
+    return jsonify({"success": True, "place": place_out})
+
 
 
 @app.route("/api/recommend", methods=["POST"])
@@ -1934,7 +1950,8 @@ def recommend():
             continue
 
         osm_id = p.get("id", i)
-        pid = f"osm_{osm_id}"
+        pid = f"{p.get('type','node')}/{osm_id}"
+
         if pid in seen:
             continue
         seen.add(pid)
@@ -1980,3 +1997,4 @@ def recommend():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+

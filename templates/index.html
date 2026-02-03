@@ -594,6 +594,7 @@ button:disabled{
   grid-template-columns: 1.15fr 0.85fr;
   padding:0;
   overflow:hidden;
+  max-height: 86vh;
 }
 
 /* LEFT SIDE – MAP */
@@ -642,6 +643,8 @@ button:disabled{
   display:flex;
   flex-direction:column;
   gap:16px;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 /* HEADER */
@@ -655,7 +658,8 @@ button:disabled{
 }
 
 .splitTitle{
-  font-size:22px;
+   font-size:20px;
+  line-height:1.2;
   font-weight:1000;
   letter-spacing:-0.4px;
 }
@@ -682,23 +686,15 @@ button:disabled{
   gap:12px;
   align-items:flex-start;
 
-  padding:12px;
-  border-radius:16px;
+  padding:10px 12px;
+  border-radius:14px;
 
-  background: linear-gradient(
-    180deg,
-    rgba(255,255,255,0.04),
-    rgba(0,0,0,0.22)
-  );
-
-  border:1px solid rgba(255,255,255,0.12);
-  box-shadow:
-    0 10px 30px rgba(0,0,0,0.35),
-    0 1px 0 rgba(255,255,255,0.04) inset;
+  background: rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.10);
 
   font-size:13px;
-  transition: transform .18s ease, box-shadow .18s ease;
 }
+
 
 .infoRow:hover{
   transform: translateY(-1px);
@@ -733,6 +729,116 @@ button:disabled{
   padding:12px;
   font-weight:1000;
 }
+
+/* FIX action links inside place modal */
+.splitActions .linkBtn{
+  flex:1;
+  text-align:center;
+  text-decoration:none;
+
+  padding:12px;
+  border-radius:14px;
+
+  font-weight:1000;
+  font-size:14px;
+  color:white;
+
+  background: linear-gradient(135deg,var(--accent),var(--accent2));
+  box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+
+  transition:
+    transform .16s ease,
+    box-shadow .16s ease,
+    filter .16s ease;
+}
+
+.splitActions .linkBtn:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 22px 60px rgba(0,0,0,0.45);
+  filter: brightness(1.05);
+}
+
+.splitActions .linkBtn:active{
+  transform: translateY(0);
+}
+
+.splitActions .linkBtn:nth-child(2){
+  background: rgba(255,255,255,0.10);
+  border:1px solid rgba(255,255,255,0.16);
+  box-shadow:none;
+}
+
+/* ===========================================================
+   🆕 CLEAN PLACE MODAL (NO MAP / NO SPLIT)
+=========================================================== */
+
+.modalInner.cleanModal{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  padding:22px;
+  max-height:86vh;
+  overflow-y:auto;
+}
+
+/* header */
+.cleanHeader{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+}
+
+.cleanTitle{
+  font-size:22px;
+  font-weight:1000;
+  letter-spacing:-0.4px;
+}
+
+.cleanMeta{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:6px;
+}
+
+/* sections */
+.cleanSection{
+  padding:14px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+}
+
+.cleanSectionTitle{
+  font-size:13px;
+  font-weight:900;
+  opacity:.7;
+  margin-bottom:8px;
+}
+
+/* actions */
+.cleanActions{
+  display:flex;
+  gap:12px;
+  margin-top:auto;
+}
+
+.cleanActions .linkBtn{
+  flex:1;
+  text-align:center;
+  text-decoration:none;
+  padding:12px;
+  border-radius:14px;
+  font-weight:1000;
+  color:white;
+  background: linear-gradient(135deg,var(--accent),var(--accent2));
+}
+
+.cleanActions .linkBtn.secondary{
+  background: rgba(255,255,255,0.10);
+  border:1px solid rgba(255,255,255,0.16);
+}
+
 
 /* ===========================================================
    ✅ FIXED SAVED PLACES ROW (PILL STYLE)
@@ -904,7 +1010,7 @@ button:disabled{
   <!-- place modal -->
   <div id="modalBackdrop"></div>
   <div id="modal">
-    <div id="modalInner" class="modalInner splitModal"></div>
+    <div id="modalInner" class="modalInner cleanModal"></div>
   </div>
 
   <!-- follow requests floating panel -->
