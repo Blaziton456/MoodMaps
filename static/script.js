@@ -1,7 +1,10 @@
+  "use strict";
+  
   let userLat = null, userLon = null, ready = false, loading = false;
   let lastPlaces = [];
   let favsDB = [];
 
+  
   /* mood themes */
   const moodThemes = {
     work: { accent: "#60a5fa", accent2: "#22d3ee", soft: "rgba(96,165,250,0.28)", bg: ["#0ea5e9", "#0f172a", "#22d3ee"], particle: "200,230,255" },
@@ -105,7 +108,7 @@ function animateParticles() {
     ✅ LOCATION (HARD FIX: works on Desktop + Mobile)
   ========================================================= */
 
-  const findBtn = document.getElementById("findBtn");
+  let findBtn = null;
   let lastGeoFixAt = 0;
   let lastGeoAcc = null;
 
@@ -133,33 +136,23 @@ function animateParticles() {
     return true;
   }
 
-  async function forceGetLocationOnce(timeoutMs = 12000) {
-    return new Promise((resolve) => {
-      if (!navigator.geolocation) {
-        resolve(false);
-        return;
-      }
+async function forceGetLocationOnce(timeout = 10000) {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) return resolve(false);
 
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          userLat = pos.coords.latitude;
-          userLon = pos.coords.longitude;
-          lastGeoFixAt = Date.now();
-          lastGeoAcc = pos.coords.accuracy;
-          ready = true;
-
-          console.log("✅ getCurrentPosition location:", userLat, userLon, "acc:", lastGeoAcc);
-          resolve(true);
-        },
-        (err) => {
-          console.log("❌ getCurrentPosition failed:", err);
-          resolve(false);
-        },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: timeoutMs }
-      );
-    });
-  }
-
+navigator.geolocation.getCurrentPosition(
+      pos => {
+        userLat = pos.coords.latitude;
+        userLon = pos.coords.longitude;
+        ready = true;
+        resolve(true);
+      },
+      () => resolve(false),
+      { enableHighAccuracy: true, timeout }
+    );
+  });
+}
+      
   async function ensureFreshLocation(maxWaitMs = 9000) {
     const start = Date.now();
 
@@ -184,24 +177,8 @@ function animateParticles() {
     });
   }
 
-if (findBtn) {
-  setFindBtnState(true, "Getting location…");
-  findBtn.onclick = findPlaces;
-
-  /* 🔑 HARD FIX: force one location fetch */
-  (async () => {
-    const ok = await forceGetLocationOnce(8000);
-
-    // Never trap user
-    setFindBtnState(false, "Find nearby places");
-
-    if (!ok) {
-      console.warn("⚠️ Location slow/unavailable, user can retry");
-    }
-  })();
-
   /* secondary: keep watchPosition only as enhancer */
-  if (navigator.geolocation) {
+if (navigator.geolocation) {
     navigator.geolocation.watchPosition(
       (pos) => {
         userLat = pos.coords.latitude;
@@ -219,9 +196,6 @@ if (findBtn) {
       { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
     );
   }
-}
-
-
 
   /* time helper */
   function pad2(n) { return String(n).padStart(2, "0"); }
@@ -945,7 +919,8 @@ const miniMap = `
   }
 
   function getFilteredPlaces() {
-    const q = (document.getElementById("searchInput").value || "").toLowerCase().trim();
+    const input = document.getElementById("searchInput");
+    const q = input ? input.value.toLowerCase().trim() : "";
     let places = [...lastPlaces];
 
     if (q) {
@@ -992,7 +967,6 @@ function renderPlaces(data) {
     const times = reachTimes(p.distance);
     const why = explainWhy(mood, p);
 
-    // ✅ correct scope
     const placeId = placeStableId(p);
     const title = p.name;
 
@@ -1021,53 +995,40 @@ function renderPlaces(data) {
 
     card.innerHTML = `
       <div class="actions">
-        <div class="iconBtn pinBtn ${pinned ? "pinned" : ""}" title="Save">
-          ${pinned ? "★" : "☆"}
-        </div>
-        <div class="iconBtn openBtn" title="Open">↗</div>
+        <div class="iconBtn pinBtn ${pinned ? "pinned" : ""}">${pinned ? "★" : "☆"}</div>
+        <div class="iconBtn openBtn">↗</div>
       </div>
 
       <h3 class="cardTitle">${p.name}</h3>
 
       <div class="badgeRow">
-        <span class="kmBadge"><span class="kmDot"></span>${p.distance} km</span>
+        <span class="kmBadge">${p.distance} km</span>
         <span class="badge">${(p.category || "place").replaceAll("_", " ")}</span>
         ${statusHTML}
       </div>
 
       ${reachHTML}
 
-      <div class="aiTag"><span class="aiDot"></span>AI Pick</div>
+      <div class="aiTag">AI Pick</div>
       <div class="aiLine">${why}</div>
     `;
 
-    /* 🎯 CARD → TAB OPEN */
-    card.addEventListener("click", () => {
-      card.classList.add("toTab");
+    // ✅ CARD → TAB
+card.addEventListener("click", (e) => {
+  e.stopPropagation();
+  setTimeout(() => {
+    openPlaceTab(placeId, title, p);
+  }, 0);
+});
 
-      setTimeout(() => {
-        openPlaceTab(placeId, title);
-
-        const tab = document.querySelector(`.tab[data-place="${placeId}"]`);
-        if (tab) {
-          tab.classList.add("snap");
-          setTimeout(() => tab.classList.remove("snap"), 400);
-        }
-
-        card.classList.remove("toTab");
-      }, 420);
-    });
-
-    /* ✨ mouse glow */
+    // ✨ mouse glow
     card.addEventListener("mousemove", (e) => {
       const r = card.getBoundingClientRect();
-      const mx = ((e.clientX - r.left) / r.width) * 100;
-      const my = ((e.clientY - r.top) / r.height) * 100;
-      card.style.setProperty("--mx", `${mx}%`);
-      card.style.setProperty("--my", `${my}%`);
+      card.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`);
+      card.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`);
     });
 
-    /* ❌ stop bubbling */
+    // buttons
     card.querySelector(".openBtn").onclick = (e) => {
       e.stopPropagation();
       openModal(p);
@@ -1084,6 +1045,7 @@ function renderPlaces(data) {
 
 
 
+
   /* ✅ update current mood on backend */
   async function setCurrentMood(mood) {
     try {
@@ -1096,17 +1058,33 @@ function renderPlaces(data) {
   }
 
   /* ✅ improved empty response UI */
-  function showNoPlacesMessage() {
-    const results = document.getElementById("results");
+function showNoPlacesMessage() {
+  const results = document.getElementById("results");
+
+  // 🧠 if user has saved places, DON'T scare them
+  if (favsDB && favsDB.length) {
     results.innerHTML = `
-      <div style="opacity:.75; padding:45px 0; text-align:center;">
-        ⚠️ No places found.<br>
+      <div style="opacity:.55; padding:45px 0; text-align:center;">
+        No new nearby places found.<br>
         <span style="font-size:13px;opacity:.75;">
-          Overpass may be slow / rate-limited. Try again in a few seconds.
+          Showing your saved places above.
         </span>
       </div>
     `;
+    return;
   }
+
+  // normal empty state
+  results.innerHTML = `
+    <div style="opacity:.75; padding:45px 0; text-align:center;">
+      ⚠️ No places found.<br>
+      <span style="font-size:13px;opacity:.75;">
+        Overpass may be slow / rate-limited. Try again in a few seconds.
+      </span>
+    </div>
+  `;
+}
+
 
   /* ✅ Find places */
   async function findPlaces() {
@@ -1138,12 +1116,16 @@ function renderPlaces(data) {
       });
 
       const data = await r.json();
-      lastPlaces = Array.isArray(data) ? data : [];
-
-      if (!lastPlaces.length) {
+      const newPlaces = Array.isArray(data) ? data : [];
+      if (!newPlaces.length) {
+        // 🧠 keep previous cards alive
         showNoPlacesMessage();
         return;
       }
+
+lastPlaces = newPlaces;
+renderPlacesFiltered();
+
 
       renderPlacesFiltered();
     } catch (e) {
@@ -1163,99 +1145,192 @@ function renderPlaces(data) {
   (async function init() {
     await fetchFavoritesFromDB();
     renderSavedGrouped();
-  })();
+  })()
 
   /* refresh status every 30 sec */
   setInterval(() => {
     if (lastPlaces.length) renderPlacesFiltered();
-  }, 30000);
+  }, 30000)
 
   document.getElementById("mood").addEventListener("change", () => {
     const mood = document.getElementById("mood").value;
     applyMoodTheme(mood);
     lastPlaces = [];
     document.getElementById("results").innerHTML = `<div style="opacity:.65; padding:50px 0; text-align:center;">Click <b>Find nearby places</b> to load new recommendations.</div>`;
-  });
+  })
 
-  /* ===================== PROFILE + REQUESTS ===================== */
+/* ===================== PROFILE + REQUESTS ===================== */
 
+async function hydrateMyUsername() {
+  try {
+    const r = await fetch("/api/profile/me");
+    const d = await r.json();
+    if (d?.success && d.username) {
+      window.MOODMAP_USERNAME = d.username;
+      return d.username;
+    }
+  } catch {}
+  return window.MOODMAP_USERNAME || "";
+}
+
+async function copyTextSmart(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {}
+
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.top = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+
+  findBtn = document.getElementById("findBtn");
   const myProfileBtn = document.getElementById("myProfileBtn");
   const copyProfileBtn = document.getElementById("copyProfileBtn");
 
-  async function hydrateMyUsername() {
-    try {
-      const r = await fetch("/api/profile/me");
-      const d = await r.json();
+  await hydrateMyUsername();
 
-      if (d && d.success && d.username) {
-        window.MOODMAP_USERNAME = d.username;
-        return d.username;
-      }
-    } catch { }
+  if (findBtn) {
+  setFindBtnState(true, "Getting location…");
+  findBtn.onclick = findPlaces;
 
-    return window.MOODMAP_USERNAME || "";
-  }
-
-  async function copyTextSmart(text) {
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-    } catch { }
-
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.style.position = "fixed";
-      ta.style.top = "-9999px";
-      ta.style.left = "-9999px";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      const ok = document.execCommand("copy");
-      document.body.removeChild(ta);
-      return ok;
-    } catch {
-      return false;
-    }
-  }
-
-  (async function initProfileButtons() {
-    await hydrateMyUsername();
-
-    if (myProfileBtn) {
-      myProfileBtn.onclick = async () => {
-        const uname = (window.MOODMAP_USERNAME || "").trim();
-
-        if (uname.length > 0) {
-          location.href = "/u/" + uname;
-        } else {
-          alert("Your username is not set. Please logout → signup again with a username.");
-        }
-      };
-    }
-
-    if (copyProfileBtn) {
-      copyProfileBtn.onclick = async () => {
-        const uname = (window.MOODMAP_USERNAME || "").trim();
-        if (!uname) {
-          alert("Username not available. Please open My Profile first.");
-          return;
-        }
-
-        const url = location.origin + "/u/" + uname;
-        const ok = await copyTextSmart(url);
-
-        if (ok) {
-          const old = copyProfileBtn.innerText;
-          copyProfileBtn.innerText = "✅ Copied";
-          setTimeout(() => copyProfileBtn.innerText = old || "🔗 Copy Link", 1200);
-        } else {
-          alert("Copy failed. Link:\n" + url);
-        }
-      };
-    }
+  (async () => {
+    const ok = await forceGetLocationOnce(8000);
+    setFindBtnState(false, "Find nearby places");
   })();
+}
+
+
+  if (myProfileBtn) {
+    myProfileBtn.onclick = () => {
+      const uname = (window.MOODMAP_USERNAME || "").trim();
+      if (uname) location.href = "/u/" + uname;
+      else alert("Username not set");
+    };
+  }
+
+  if (copyProfileBtn) {
+    copyProfileBtn.onclick = async () => {
+      const uname = (window.MOODMAP_USERNAME || "").trim();
+      if (!uname) return alert("Username not available");
+
+      const url = location.origin + "/u/" + uname;
+      await copyTextSmart(url);
+      copyProfileBtn.innerText = "✅ Copied";
+      setTimeout(() => copyProfileBtn.innerText = "Copy Link", 1200);
+    };
+  }
+});
+
+
+/* ===========================
+   🎹 MECHANICAL KEYBOARD SFX
+=========================== */
+
+let KEYBOARD_SWITCH = "blue"; 
+// "blue" | "brown"
+
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+const audioCtx = new AudioCtx();
+
+/* 🔵 BLUE SWITCH */
+function blueSwitchKey() {
+  const now = audioCtx.currentTime;
+
+  // CLICK
+  const clickOsc = audioCtx.createOscillator();
+  const clickGain = audioCtx.createGain();
+  clickOsc.type = "square";
+  clickOsc.frequency.setValueAtTime(2400 + Math.random()*200, now);
+  clickGain.gain.setValueAtTime(0.08, now);
+  clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
+  clickOsc.connect(clickGain).connect(audioCtx.destination);
+  clickOsc.start(now);
+  clickOsc.stop(now + 0.02);
+
+  // CLACK
+  const clackOsc = audioCtx.createOscillator();
+  const clackGain = audioCtx.createGain();
+  clackOsc.type = "triangle";
+  clackOsc.frequency.setValueAtTime(480 + Math.random()*40, now);
+  clackGain.gain.setValueAtTime(0.06, now);
+  clackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+  clackOsc.connect(clackGain).connect(audioCtx.destination);
+  clackOsc.start(now);
+  clackOsc.stop(now + 0.05);
+
+  // SPRING PING
+  const pingOsc = audioCtx.createOscillator();
+  const pingGain = audioCtx.createGain();
+  pingOsc.type = "sine";
+  pingOsc.frequency.setValueAtTime(3200 + Math.random()*300, now);
+  pingGain.gain.setValueAtTime(0.015, now);
+  pingGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+  pingOsc.connect(pingGain).connect(audioCtx.destination);
+  pingOsc.start(now);
+  pingOsc.stop(now + 0.035);
+}
+
+/* 🟤 BROWN SWITCH */
+function brownSwitchKey() {
+  const now = audioCtx.currentTime;
+
+  const thockOsc = audioCtx.createOscillator();
+  const thockGain = audioCtx.createGain();
+  thockOsc.type = "square";
+  thockOsc.frequency.setValueAtTime(180 + Math.random()*20, now);
+  thockGain.gain.setValueAtTime(0.09, now);
+  thockGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+  thockOsc.connect(thockGain).connect(audioCtx.destination);
+  thockOsc.start(now);
+  thockOsc.stop(now + 0.06);
+
+  const bumpOsc = audioCtx.createOscillator();
+  const bumpGain = audioCtx.createGain();
+  bumpOsc.type = "triangle";
+  bumpOsc.frequency.setValueAtTime(420 + Math.random()*30, now);
+  bumpGain.gain.setValueAtTime(0.04, now);
+  bumpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+  bumpOsc.connect(bumpGain).connect(audioCtx.destination);
+  bumpOsc.start(now);
+  bumpOsc.stop(now + 0.035);
+}
+
+let lastKeyTime = 0;
+
+document.addEventListener("keydown", e => {
+  const now = Date.now();
+  if (now - lastKeyTime < 28) return;
+  lastKeyTime = now;
+
+  if (e.key.length === 1 || e.key === "Backspace") {
+    if (audioCtx.state === "suspended") audioCtx.resume();
+
+    if (KEYBOARD_SWITCH === "blue") {
+      blueSwitchKey();
+    } else {
+      brownSwitchKey();
+    }
+  }
+});
+
+document.addEventListener("keydown", e => {
+  if (e.altKey && e.key === "1") KEYBOARD_SWITCH = "blue";
+  if (e.altKey && e.key === "2") KEYBOARD_SWITCH = "brown";
+});
 
 

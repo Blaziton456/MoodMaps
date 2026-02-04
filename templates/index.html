@@ -6,9 +6,12 @@
 <title>MoodMap</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
 
 <style>
 :root{
+  --pixel-font: 'Press Start 2P', monospace;
   --bg-main:#0f0b10;
   --bg-panel:#18121a;
   --bg-soft:#1f1722;
@@ -39,7 +42,9 @@ html, body {
 body {
   overflow: hidden;           /* ❗ important */
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-  background: #fdf7ff;        /* fallback only */
+  background: #fdf7ff;       /* fallback only */
+  font-family: var(--pixel-font);
+  font-size: 12px;
 }
 
 
@@ -50,7 +55,6 @@ body {
   z-index:-7;
   pointer-events:none;
   opacity:0.02;
-  background-image:url("https://grainy-gradients.vercel.app/noise.svg");
   mix-blend-mode: soft-light;
 }
 
@@ -118,7 +122,7 @@ header{
 
 .welcomeChip{
   padding:10px 14px;
-  border-radius:999px;
+  border-radius:6px;
   border:1px solid var(--border);
   background: rgba(255,255,255,0.05);
   font-size:13px;
@@ -209,7 +213,7 @@ header{
 .panel{
   margin-top:18px;
   border-radius:24px;
-  padding:18px;
+  padding: 14px 16px;
   border:1px solid rgba(255,255,255,0.14);
   backdrop-filter: blur(14px);
   box-shadow:
@@ -222,31 +226,20 @@ header{
   gap:14px;
   align-items:center;
   flex-wrap:wrap;
+  background:none !important;
 }
 
 select, input[type="text"]{
-  background:rgba(255,255,255,0.05);
-  border:1px solid rgba(255,255,255,0.12);
-  color:var(--text);
-  padding:12px 14px;
-  border-radius:16px;
-  font-size:14px;
-  outline:none;
+  background: #fff !important;
+  color: #000 !important;
+  border-radius: 6px !important;
+  border: 3px solid #000 !important;
+  font-family: var(--pixel-font);
+  font-size: 11px;
 }
 
 input[type="text"]{width:340px}
 
-button{
-  margin-left:auto;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  border:none;
-  color:white;
-  padding:12px 18px;
-  border-radius:16px;
-  font-weight:1000;
-  cursor:pointer;
-  transition: transform .16s ease, box-shadow .16s ease;
-}
 button:hover{
   transform:translateY(-2px);
   box-shadow: 0 18px 70px var(--accent-soft);
@@ -851,14 +844,6 @@ button:hover,
   box-shadow: 0 20px 50px rgba(255,180,162,0.35);
 }
 
-select,
-input[type="text"]{
-  background: var(--bg-soft);
-  border:1px solid var(--border);
-  color:var(--text);
-  border-radius:18px;
-  padding:12px 16px;
-}
 
 select:focus,
 input:focus{
@@ -882,354 +867,507 @@ input:focus{
   filter: saturate(0.75) brightness(0.9);
 }
 
-/* ===========================================================
-   🪟 FAKE BROWSER SHELL (PASTEL CARTOON)
-=========================================================== */
 
-.browserShell{
-  width: 100vw;
-  height: 100vh;   
+/* ===== TAB ===== */
+/* ===========================
+   🪟 PIXEL BROWSER TABS (FIXED)
+=========================== */
+
+.tabsBar {
   display: flex;
-  flex-direction: column;
-  max-width: 100%;
-  min-height:100vh;
-  margin: 0;
-  border-radius: 0;
-  background:#fdf7ff;
-  box-shadow: none;
-  overflow: hidden;  
-  border-bottom-left-radius:18px;
-  border-bottom-right-radius:18px;
+  align-items: center;          /* 🔑 IMPORTANT */
+  gap: 6px;
 }
 
 
-/* top bar */
-.browserTopBar{
-  background: linear-gradient(180deg,#e9c6ff,#f3ddff);
-  padding: 10px 14px;
+/* BASE TAB */
+.tab {
+  height: 26px;                 /* browser tab height */
+  min-width: 88px;
+  padding: 0 14px;
+
   display: flex;
   align-items: center;
-  gap: 14px;
-  border-bottom: 2px solid rgba(0,0,0,0.08);
-}
+  gap: 8px;
 
-/* fake window dots */
-.browserDots{
-  display:flex;
-  gap:6px;
-}
-.browserDots span{
-  width:12px;height:12px;
-  border-radius:50%;
-  background:#ff9aa2;
-}
-.browserDots span:nth-child(2){ background:#ffd97d }
-.browserDots span:nth-child(3){ background:#b5ead7 }
+  background: #ede9fe;
+  border: 3px solid #000;
 
-/* tabs bar */
-.browserTabs{
-  display:flex;
-  gap:6px;
-  align-items:flex-end;
-  overflow-x:auto;
-}
+  font-family: var(--pixel-font);
+  font-size: 11px;
+  line-height: 1;
 
-/* tab */
-.tab{
-  background:#f7eaff;
-  border-radius:14px 14px 0 0;
-  padding:8px 14px;
-  font-weight:900;
-  font-size:13px;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  gap:6px;
-  border:2px solid rgba(0,0,0,0.08);
-  border-bottom:none;
-  opacity:.7;
-}
+  box-shadow: 3px 3px 0 #000;
+  cursor: pointer;
 
-.tab.active{
-  background:#fff;
-  opacity:1;
-}
-
-.tab.addTab{
-  padding:8px 12px;
-  font-size:16px;
-  opacity:.6;
-}
-
-/* viewport */
-.tabViewport{
-  flex: 1;                    /* takes remaining height */
-  overflow-y: auto;           /* internal scrolling */
-  background: #fff;
-    background:
-    radial-gradient(
-      circle at top center,
-      rgba(255,180,162,0.12),
-      transparent 55%
-    ),
-    #fdf7ff;
+  position: relative;           /* ❌ NO top offset */
 }
 
 
-/* tab pages */
-.tabPage{
-  display:none;
-}
-.tabPage.active{
-  display:block;
+/* TAB TEXT */
+.tabTitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.results{
-  margin-top:32px;
-  padding-top:20px;
-  border-top:1px dashed rgba(0,0,0,0.08);
+/* ACTIVE TAB */
+.tab.active {
+  background: #ffffff;
+  top: 0;                       /* ⬆ sits higher */
+  box-shadow: 4px 4px 0 #000;
+  z-index: 5;
+}
+
+/* HOVER */
+.tab:hover {
+  transform: translate(-1px, -1px);
+}
+
+/* CLOSE BUTTON */
+.tabClose {
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 6px;
+
+  border: 2px solid #000;
+  background: #fca5a5;
+  cursor: pointer;
+}
+
+/* ADD TAB (+) */
+.tab.addTab {
+   min-width: auto;
+  padding: 0 12px;
+  font-size: 16px;
+  font-weight: 900;
+  opacity: 0.8;
+}
+.tab.addTab:hover {
+  opacity: 1;
+}
+
+/* WINDOW FRAME */
+
+.windowChrome {
+  background: #e9d5ff;
+  border: 4px solid #000;
+  border-radius: 8px;
+  box-shadow: 6px 6px 0 #000;
+  overflow: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+
+.windowTop {
+  height: 44px;                 /* browser-like */
+  display: flex;
+  align-items: center;          /* 🔑 SAME BASELINE */
+  gap: 12px;
+
+  padding: 0 12px;
+  background: #ddd6fe;
+
+  border-bottom: 4px solid #000;
+  position: relative;
+}
+
+
+.windowControls {
+  display: flex;
+  gap: 8px;
+  margin-right: 10px;
+}
+
+.windowControls .dot {
+  width: 12px;
+  height: 12px;
+  border: 3px solid #000;
+}
+
+
+.dot.red { background:#f87171 }
+.dot.yellow { background:#facc15 }
+.dot.green { background:#4ade80 }
+
+/* ===========================================================
+   🎨 MOOD FILTERS — WINDOW CHROME
+=========================================================== */
+
+.windowChrome.mood-work {
+  filter: saturate(0.9) brightness(0.95) hue-rotate(-6deg);
+}
+
+.windowChrome.mood-date {
+  filter: saturate(1.05) brightness(1) hue-rotate(10deg);
+}
+
+.windowChrome.mood-budget {
+  filter: saturate(0.7) brightness(0.9) grayscale(0.1);
 }
 
 /* ===========================================================
-   🎨 BROWSER THEME OVERRIDES (PASTEL MODE)
+   🎴 CARD + PANEL INSIDE WINDOW
 =========================================================== */
 
-.browserShell .panel{
+.windowChrome .panel{
   background: linear-gradient(
     180deg,
-    rgba(255,255,255,0.9),
-    rgba(245,240,255,0.95)
+    rgba(255,255,255,0.95),
+    rgba(245,240,255,0.98)
   );
-  border: 1px solid rgba(0,0,0,0.06);
-  box-shadow:
-    0 18px 40px rgba(0,0,0,0.12);
-  backdrop-filter: none;
+  border: 3px solid #000;
+  box-shadow: 6px 6px 0 #000;
 }
 
-.browserShell select,
-.browserShell input[type="text"]{
+.windowChrome * {
+  pointer-events: auto;
+}
+
+.windowChrome .card{
+  background:#fff;
+  border:3px solid #000;
+  border-radius:16px;
+  box-shadow: 6px 6px 0 #000;
+}
+
+.windowChrome .card:hover{
+  transform: translateY(-3px);
+}
+
+/* ===========================================================
+   🧱 PIXEL PLACE CARDS — FINAL FIX
+=========================================================== */
+
+.card,
+.placeCard {
   background: #ffffff;
-  color:#2b1f23;
-  border:1px solid rgba(0,0,0,0.08);
+  color: #000;
+
+  border: 3px solid #000;
+  border-radius: 10px;
+
+  /* pixel shadow (NO blur) */
+  box-shadow: 6px 6px 0 #000;
+
+  padding: 16px 18px;
+  font-family: var(--pixel-font);
+  animation: cardIn 0.25s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
-.browserShell button{
-  background: linear-gradient(135deg,#ffb4a2,#cdb4db);
-  color:#2b1f23;
-  box-shadow: 0 10px 30px rgba(255,180,162,0.35);
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.card {
+  position: relative;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+
+/* top squiggle */
+.card::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 24px;
+  width: 48px;
+  height: 12px;
+  border-top: 3px solid #000;
+  border-radius: 12px;
+}
+
+/* bottom accent line */
+.card::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  right: 28px;
+  width: 36px;
+  height: 10px;
+  border-bottom: 3px solid #000;
+  border-radius: 10px;
+}
+
+@keyframes floaty {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+
+.card::before,
+.card::after {
+  animation: floaty 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* hover = slight lift */
+.card:hover,
+.placeCard:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 10px 10px 0 #000;
+}
+
+/* title */
+.card h3,
+.placeTitle {
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+/* meta text */
+.card p,
+.placeSub {
+  font-size: 11px;
+  line-height: 1.6;
+  opacity: 0.85;
+}
+
+/* badges (Cafe, AI Pick, etc.) */
+.badge {
+  border: 2px solid #000;
+  background: #fef3c7;
+  color: #000;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+/* distance / time row */
+.card .metaRow,
+.card .infoRow {
+  margin-top: 6px;
+  font-size: 10px;
+  line-height: 1.6;
 }
 
 /* ===========================================================
-   🎨 MOOD FILTERS — APPLIED TO FAKE BROWSER (NOT BODY)
+   🎨 HAND-DRAWN DECORATIVE LINES
 =========================================================== */
 
-.browserShell.mood-work {
-  filter:
-    saturate(0.9)
-    brightness(0.95)
-    hue-rotate(-6deg);
+/* top scribbles */
+.windowTop::after {
+  content: "";
+  position: absolute;
+  left: 120px;
+  top: 6px;
+  width: 120px;
+  height: 8px;
+  border-top: 3px solid #000;
+  border-radius: 100px;
+  opacity: 0.7;
 }
 
-.browserShell.mood-date {
-  filter:
-    saturate(1.05)
-    brightness(1)
-    hue-rotate(10deg);
+/* little bumps in center */
+.windowTop::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  width: 40px;
+  height: 12px;
+  border: 3px solid #000;
+  border-bottom: none;
+  border-radius: 100px 100px 0 0;
+  transform: translateX(-50%);
+  opacity: 0.6;
 }
 
-.browserShell.mood-budget {
-  filter:
-    saturate(0.7)
-    brightness(0.9)
-    grayscale(0.1);
+/* bottom left squiggle */
+.windowChrome .decorSquiggle {
+  position: absolute;
+  bottom: 12px;
+  left: 40px;
+  width: 60px;
+  height: 14px;
+  border: 3px solid #000;
+  border-top: none;
+  border-radius: 0 0 100px 100px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+
+/* bottom right corner box */
+.windowChrome::after {
+  content: "";
+  position: absolute;
+  bottom: 10px;
+  right: 30px;
+  width: 14px;
+  height: 14px;
+  border: 3px solid #000;
+  opacity: 0.6;
 }
 
 /* ===========================================================
-   🎴 PHASE 2 — PASTEL BROWSER CARDS
+   ✨ SUBTLE IDLE ANIMATIONS
 =========================================================== */
 
-.browserShell .card{
-  background: #fde7ff !important;
-  border: 2px solid rgba(0,0,0,0.08) !important;
-  border-radius: 26px !important;
-
-  box-shadow:
-    0 18px 45px rgba(0,0,0,0.12),
-    inset 0 1px 0 rgba(255,255,255,0.6) !important;
-
-  backdrop-filter: none !important;
-  padding: 20px !important;
-  min-height: 180px;
-
-  cursor: pointer;
-  transition: transform .18s ease, box-shadow .18s ease;
+@keyframes floaty {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
 }
 
-/* hover = soft lift */
-
-.browserShell .card:hover{
-  transform: translateY(-4px);
-  box-shadow:
-    0 28px 70px rgba(255,180,162,0.35) !important;
+@keyframes blink {
+  0%, 90%, 100% { opacity: 0.6; }
+  95% { opacity: 0.2; }
 }
 
-/* press feel */
-.browserShell .card:active{
-  transform: scale(0.97);
+/* window gently floats */
+.windowChrome {
+  animation: floaty 6s ease-in-out infinite;
 }
 
-/* card title polish */
-.browserShell .card h3{
-  color:#2b1f23;
-  font-weight:900;
+/* decorative lines blink slightly */
+.windowTop::after,
+.windowChrome::before,
+.windowChrome::after {
+  animation: blink 5s infinite;
 }
 
-/* subtle shine */
-.browserShell .card::after{
+/* ===========================
+   🧠 TAB PAGE VISIBILITY FIX
+=========================== */
+
+.tabPage {
+  display: none;
+  height: 100%;
+  animation: fadeTab 0.18s steps(2) both;
+}
+@keyframes fadeTab {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+
+.tabPage.active {
+  display: block;
+}
+
+
+.tabViewport {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+}
+
+
+
+/* ===========================================================
+   🧱 PIXELATE ALL CONTROLS (INPUTS / BUTTONS / CHIPS)
+=========================================================== */
+
+button,
+select,
+input[type="text"],
+.welcomeChip,
+.topBtn,
+.logoutBtn {
+  font-family: var(--pixel-font);
+  border-radius: 6px !important;
+  border: 3px solid #000 !important;
+  background: #fff !important;
+  color: #000 !important;
+
+  box-shadow: 4px 4px 0 #000 !important;
+  padding: 10px 14px !important;
+
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+/* ===== PIXEL PRESS EFFECT ===== */
+button:active,
+.topBtn:active,
+.logoutBtn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 #000 !important;
+}
+
+
+button:hover,
+.topBtn:hover,
+.logoutBtn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 #000 !important;
+}
+
+select {
+  appearance: none;
+  background: #fff;
+  border-radius: 6px;
+  border: 3px solid #000;
+  font-family: var(--pixel-font);
+  font-size: 11px;
+  padding-right: 28px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, black 50%),
+    linear-gradient(135deg, black 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 9px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* ===== FAKE PIXEL CURSOR ===== */
+.pixelInputWrap {
+  position: relative;
+}
+
+.pixelCaret {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 8px;
+  height: 14px;
+  background: #000;
+  transform: translateY(-50%);
+  animation: caretBlink 1s steps(1) infinite;
+  pointer-events: none;
+}
+
+@keyframes caretBlink {
+  50% { opacity: 0; }
+}
+
+/* ===== CRT SCANLINES ===== */
+.windowChrome::before {
   content:"";
-  display:none !important;
   position:absolute;
   inset:0;
   pointer-events:none;
   background:
-    radial-gradient(
-      circle at top left,
-      rgba(255,255,255,0.6),
-      transparent 45%
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.05),
+      rgba(0,0,0,0.05) 1px,
+      transparent 1px,
+      transparent 3px
     );
-  opacity:.35;
+  mix-blend-mode: multiply;
+  opacity: 0.25;
 }
 
-.placeCard {
-  max-width: 820px;
-  margin: 40px auto;
-  padding: 22px 26px;
 
-  border-radius: 22px;
-  background: rgba(255,255,255,0.65);
-  backdrop-filter: blur(14px);
-
-  box-shadow:
-    0 10px 30px rgba(0,0,0,0.08),
-    inset 0 1px 0 rgba(255,255,255,0.6);
-
-  transition: all .25s ease;
-}
-
-.placeTitle {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1f2937;
-}
-
-.placeSub {
-  font-size: 13px;
-  opacity: 0.65;
-  margin-top: 4px;
-}
-
-/* ✅ FINAL CARD AUTHORITY — PASTEL BROWSER */
-.browserShell .results .card{
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255,255,255,0.95),
-      rgba(245,240,255,0.98)
-    ) !important;
-
-  border:1px solid rgba(0,0,0,0.06) !important;
-  backdrop-filter: none !important;
-
-  box-shadow:
-    0 16px 40px rgba(0,0,0,0.12) !important;
-}
-
-/* ===============================
-   🪟 BROWSER-LIKE RESULT CARD
-================================ */
-
-.browserShell .card{
+.homeContent,
+#results,
+.card {
   position: relative;
-  border-radius: 26px;
-  overflow: hidden;
-  background: #fde7ff;
-  border: 2px solid rgba(0,0,0,0.08);
-
-  box-shadow:
-    0 16px 40px rgba(0,0,0,0.14),
-    inset 0 1px 0 rgba(255,255,255,0.7);
-
-  transition:
-    transform .35s cubic-bezier(.2,.9,.2,1),
-    box-shadow .35s ease,
-    opacity .2s ease;
-
-  cursor: pointer;
-}
-
-/* fake mini browser top bar */
-.browserShell .card::before{
-  content:"";
-  display:block;
-  height:32px;
-  background: linear-gradient(180deg,#e9b6ff,#f3d6ff);
-  border-bottom:2px solid rgba(0,0,0,0.08);
-}
-
-/* dots */
-.browserShell .card::after{
-  content:"";
-  position:absolute;
-  top:10px;
-  right:16px;
-  width:42px;
-  height:12px;
-  background:
-    radial-gradient(circle,#ffd97d 5px,transparent 6px),
-    radial-gradient(circle,#b5ead7 5px,transparent 6px),
-    radial-gradient(circle,#ff9aa2 5px,transparent 6px);
-  background-size:12px 12px;
-  background-repeat:no-repeat;
-  background-position:0 0,15px 0,30px 0;
-  opacity:.9;
-}
-
-@keyframes cardToTab {
-  0% {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-  }
-  60% {
-    transform: scale(0.85) translateY(-80px);
-    opacity: .85;
-  }
-  100% {
-    transform: scale(0.6) translateY(-140px);
-    opacity: 0;
-  }
-}
-
-.card.toTab {
-  animation: cardToTab .45s cubic-bezier(.2,.9,.2,1) forwards;
-}
-
-.tab.snap{
-  animation: tabSnap .35s ease;
-}
-
-@keyframes tabSnap{
-  0%{
-    transform: scale(1);
-    box-shadow:none;
-  }
-  50%{
-    transform: scale(1.08);
-    box-shadow:0 0 0 4px rgba(255,180,162,0.45);
-  }
-  100%{
-    transform:none;
-    box-shadow:none;
-  }
+  z-index: 5;
 }
 
 
@@ -1248,80 +1386,113 @@ input:focus{
 </style>
 </head>
 <body>
- <div class="browserShell">
+<!-- ================= FAKE BROWSER WINDOW ================= -->
+
+<div class="windowChrome">
+  <div class="decorSquiggle"></div>
+
 
   <!-- ================= TOP BAR ================= -->
-  <div class="browserTopBar">
-    <div class="browserDots">
-      <span></span><span></span><span></span>
+  <div class="windowTop">
+
+    <!-- window dots -->
+    <div class="windowControls">
+      <span class="dot red"></span>
+      <span class="dot yellow"></span>
+      <span class="dot green"></span>
     </div>
 
-    <div class="browserTabs" id="browserTabs">
+    <!-- tabs -->
+    <div id="browserTabs" class="tabsBar">
       <div class="tab active" data-tab="home">
-        <span class="tabIcon">🏠</span>
         <span class="tabTitle">MoodMap</span>
       </div>
-
-      <div class="tab addTab">＋</div>
+      <div class="tab addTab">+</div>
     </div>
+
   </div>
 
-  <!-- ================= TAB CONTENT ================= -->
-<div class="tabViewport">
+  <!-- ================= TAB VIEWPORT ================= -->
+  <div class="tabViewport">
 
-  <!-- ===== HOME TAB PAGE ===== -->
-  <div class="tabPage active" data-tab-page="home">
-    <div class="app">
+    <!-- ===== HOME TAB PAGE ===== -->
+    <div class="tabPage active" data-tab-page="home">
+      <div class="app">
 
-      <!-- ================= HERO (SEARCH) ================= -->
-      <div class="homeHero">
-        <div class="panel">
-          <div class="controls">
-            <select id="mood">
-              <option value="work">Work</option>
-              <option value="date">Date</option>
-              <option value="quick_bite">Quick Bite</option>
-              <option value="budget">Budget</option>
-            </select>
+        <!-- ================= HEADER PANEL ================= -->
+        <div class="panel" style="margin-bottom:22px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
 
-            <input
-              type="text"
-              id="searchInput"
-              placeholder="Search places / category..."
-            />
+            <!-- Brand -->
+            <div>
+              <div style="font-size:28px;font-weight:1000;">MoodMap</div>
+              <div style="font-size:13px;opacity:.65;">
+                Context-aware place discovery
+              </div>
+            </div>
 
-            <button id="findBtn" disabled>
-              Getting location…
-            </button>
+            <!-- User actions -->
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <div class="welcomeChip">
+                Welcome, {{ user_username }}
+              </div>
+
+              <button class="topBtn" id="myProfileBtn">My Profile</button>
+              <button class="topBtn" id="copyProfileBtn">Copy Link</button>
+              <a href="/logout" class="logoutBtn">Logout</a>
+            </div>
+
           </div>
         </div>
-      </div>
 
-      <!-- ================= CONTENT (SAVED + RESULTS) ================= -->
-      <div class="homeContent">
-        <div id="savedWrap"></div>
-        <div id="results" class="results"></div>
-      </div>
+        <!-- ================= SEARCH ================= -->
+        <div class="homeHero">
+          <div class="panel">
+            <div class="controls">
+              <select id="mood">
+                <option value="work">Work</option>
+                <option value="date">Date</option>
+                <option value="quick_bite">Quick Bite</option>
+                <option value="budget">Budget</option>
+              </select>
 
-    </div> <!-- /.app -->
+              <div class="pixelInputWrap">
+                <span class="pixelCaret"></span>
+                <input
+                type="text"
+                id="searchInput"
+                placeholder="Search places / category..."
+                />
+              </div>
 
-  </div> <!-- /.tabPage -->
 
-</div> <!-- /.tabViewport -->
+              <button id="findBtn" disabled>
+                Getting location…
+              </button>
+            </div>
+          </div>
+        </div>
 
+        <!-- ================= CONTENT ================= -->
+        <div class="homeContent">
+          <div id="savedWrap"></div>
+          <div id="results" class="results"></div>
+        </div>
 
-</div> <!-- .browserShell -->
+      </div> <!-- /.app -->
+    </div> <!-- /.tabPage -->
 
+  </div> <!-- /.tabViewport -->
 
-<!-- ================= MODALS (OUTSIDE TABS) ================= -->
+</div>
 
-<!-- place modal -->
+<!-- ================= MODALS ================= -->
+
 <div id="modalBackdrop"></div>
 <div id="modal">
   <div id="modalInner" class="modalInner cleanModal"></div>
 </div>
 
-<!-- follow requests floating panel -->
 <div id="reqBackdrop"></div>
 <div id="reqModal">
   <div class="reqInner">
@@ -1332,143 +1503,105 @@ input:focus{
       </div>
       <button class="smallBtn reqClose" id="reqCloseBtn">✕</button>
     </div>
-
     <div class="reqList" id="reqList"></div>
   </div>
 </div>
-  
 
-<!-- scripts -->
-<script>window.MOODMAP_USERNAME = "{{user_username}}";</script>
+
+<!-- ================= SCRIPTS ================= -->
+
+<script>window.MOODMAP_USERNAME = "{{ user_username }}";</script>
 <script src="https://unpkg.com/opening_hours@3.6.0/opening_hours.min.js"></script>
-<script src="/static/script.js"></script>
 
+<script>window.MOODMAP_USERNAME = "{{ user_username }}";</script>
+<script src="https://unpkg.com/opening_hours@3.6.0/opening_hours.min.js"></script>
+
+<!-- 🔥 TAB SYSTEM MUST COME FIRST -->
 <script>
-const shell = document.querySelector(".browserShell");
+  /* ================= TAB SYSTEM (FIXED) ================= */
 
-function applyMood(mood){
-  shell.classList.remove("mood-work","mood-date","mood-budget");
-  shell.classList.add("mood-" + mood);
-}
+  const tabsBar = document.getElementById("browserTabs");
+  const tabViewport = document.querySelector(".tabViewport");
 
-const tabsBar = document.getElementById("browserTabs");
-const tabViewport = document.querySelector(".tabViewport");
+  function activateTab(tabId) {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".tabPage").forEach(p => p.classList.remove("active"));
 
-function openPlaceTab(placeId, title){
-  // already open?
-  const existing = document.querySelector(`.tab[data-place="${placeId}"]`);
-  if(existing){
-    activateTab(existing.dataset.tab);
-    return;
+    const tab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+    if (tab) tab.classList.add("active");
+
+    if (tabId === "home") {
+      document
+        .querySelector('.tabPage[data-tab-page="home"]')
+        ?.classList.add("active");
+      return;
+    }
+
+    document
+      .querySelector(`.tabPage[data-tab-page="${tabId}"]`)
+      ?.classList.add("active");
   }
 
-  // create tab id
-  const tabId = "place-" + placeId;
+  function openPlaceTab(placeId, title, placeData = {}) {
+    const tabId = "place-" + placeId;
 
-  /* ---------- TAB ---------- */
-  const tab = document.createElement("div");
-  tab.className = "tab";
-  tab.dataset.tab = tabId;
-  tab.dataset.place = placeId;
-  tab.draggable = true;
+    const existing = document.querySelector(`.tab[data-tab="${tabId}"]`);
+    if (existing) {
+      activateTab(tabId);
+      return;
+    }
 
-  tab.innerHTML = `
-    <span class="tabTitle">${title}</span>
-    <span class="tabClose">✕</span>
-  `;
+    const tab = document.createElement("div");
+    tab.className = "tab";
+    tab.dataset.tab = tabId;
+    tab.innerHTML = `
+      <span class="tabTitle">${title}</span>
+      <span class="tabClose">✕</span>
+    `;
+    tabsBar.insertBefore(tab, tabsBar.querySelector(".addTab"));
 
-  tabsBar.insertBefore(tab, tabsBar.querySelector(".addTab"));
-
-  /* ---------- PAGE ---------- */
-  const page = document.createElement("div");
-  page.className = "tabPage";
-  page.dataset.tabPage = tabId;
-  page.innerHTML = `
-    <div class="app">
-      <div class="panel">
-        <strong>${title}</strong>
-        <div style="margin-top:10px;opacity:.7">
-          Place details will render here
+    const page = document.createElement("div");
+    page.className = "tabPage";
+    page.dataset.tabPage = tabId;
+    page.innerHTML = `
+      <div class="app">
+        <div class="panel">
+          <h2>${placeData.name || title}</h2>
+          <div style="opacity:.7;margin-top:6px">
+            ${(placeData.category || "place").replaceAll("_"," ")}
+          </div>
         </div>
       </div>
-    </div>
-  `;
-  tabViewport.appendChild(page);
+    `;
 
-  activateTab(tabId);
-}
-
-/* activate tab */
-function activateTab(tabId){
-  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-  document.querySelectorAll(".tabPage").forEach(p=>p.classList.remove("active"));
-
-  const tab = document.querySelector(`.tab[data-tab="${tabId}"]`);
-  const page = document.querySelector(`.tabPage[data-tab-page="${tabId}"]`);
-
-  if(tab && page){
-    tab.classList.add("active");
-    page.classList.add("active");
+    tabViewport.appendChild(page);
+    activateTab(tabId);
   }
-}
 
-
-
-let draggedTab = null;
-
-tabsBar.addEventListener("dragstart", e=>{
-  const tab = e.target.closest(".tab");
-  if(!tab || tab.dataset.tab === "home" || tab.classList.contains("addTab")) return;
-  draggedTab = tab;
-});
-
-
-tabsBar.addEventListener("dragover", e=>{
-  e.preventDefault();
-  const target = e.target.closest(".tab");
-  if(target && target !== draggedTab && !target.classList.contains("addTab")){
-    tabsBar.insertBefore(draggedTab, target);
-  }
-});
-
-tabsBar.addEventListener("click", e => {
-  if (!e.target.classList.contains("tabClose")) return;
-  e.stopPropagation();
-
-  const tab = e.target.closest(".tab");
-  const tabId = tab.dataset.tab;
-  if (tabId === "home") return;
-
-  const wasActive = tab.classList.contains("active");
-
-  // remove page + tab
-  document.querySelector(`.tabPage[data-tab-page="${tabId}"]`)?.remove();
-  tab.remove();
-
-  if (!wasActive) return;
-
-  // find LAST visible tab (never empty)
-  const remainingTabs = [...document.querySelectorAll(".tab:not(.addTab)")];
-
-  const next =
-    remainingTabs[remainingTabs.length - 1] ||
-    document.querySelector('.tab[data-tab="home"]');
-
-  activateTab(next.dataset.tab);
-});
-
-
-
-
-tabsBar.addEventListener("click", e=>{
-  const tab = e.target.closest(".tab");
-  if(tab && !tab.classList.contains("addTab")){
+  tabsBar.addEventListener("click", e => {
+    if (e.target.classList.contains("tabClose")) return;
+    const tab = e.target.closest(".tab");
+    if (!tab || tab.classList.contains("addTab")) return;
     activateTab(tab.dataset.tab);
-  }
-});
+  });
 
+  tabsBar.addEventListener("click", e => {
+    if (!e.target.classList.contains("tabClose")) return;
+    e.stopPropagation();
 
+    const tab = e.target.closest(".tab");
+    const tabId = tab.dataset.tab;
+    if (tabId === "home") return;
+
+    const wasActive = tab.classList.contains("active");
+    document.querySelector(`.tabPage[data-tab-page="${tabId}"]`)?.remove();
+    tab.remove();
+    if (wasActive) activateTab("home");
+  });
+
+  window.openPlaceTab = openPlaceTab;
 </script>
 
-</body>
-</html>
+<!-- ✅ MAIN LOGIC COMES AFTER -->
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
