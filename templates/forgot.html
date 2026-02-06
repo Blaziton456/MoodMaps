@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>MoodMap – Forgot Password</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
 <style>
   :root{
@@ -19,13 +19,46 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
   body{
-    height:100vh;display:flex;justify-content:center;align-items:center;
-    font-family:Inter,system-ui;color:var(--text);
-    background: radial-gradient(circle at 20% 20%, #a78bfa55, transparent 55%),
-                radial-gradient(circle at 80% 80%, #22d3ee55, transparent 58%),
-                linear-gradient(120deg,#020617,#0f172a);
-    overflow:hidden;
-  }
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  background:
+    /* GRID */
+    repeating-linear-gradient(
+      0deg,
+      rgba(59,130,246,0.12),
+      rgba(59,130,246,0.12) 1px,
+      transparent 1px,
+      transparent 24px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(59,130,246,0.12),
+      rgba(59,130,246,0.12) 1px,
+      transparent 1px,
+      transparent 24px
+    ),
+
+    /* GLOW */
+    radial-gradient(circle at 30% 30%, #c7bfff 0%, transparent 45%),
+    radial-gradient(circle at 80% 70%, #9eeaff 0%, transparent 45%),
+
+    #eef6ff;
+
+  font-family:'Press Start 2P', monospace;
+  overflow:hidden;
+  background-size: 24px 24px, 24px 24px, auto, auto;
+  animation: gridDrift 40s linear infinite;
+}
+@keyframes gridDrift{
+  from { background-position: 0 0, 0 0, center, center; }
+  to   { background-position: 24px 24px, 24px 24px, center, center; }
+}
+
+
   .blob{position:fixed;width:520px;height:520px;border-radius:999px;filter:blur(55px);opacity:.55;z-index:-2;animation: float 10s ease-in-out infinite;}
   .b1{left:-150px;top:-170px;background:#a78bfa;}
   .b2{right:-180px;top:120px;background:#22d3ee;animation-delay:-4s}
@@ -33,18 +66,53 @@
   @keyframes float{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(25px,-18px) scale(1.06)}}
 
   .card{
-    width:min(440px,92vw);
-    padding:30px 28px;border-radius:22px;
-    border:1px solid var(--stroke);
-    background: linear-gradient(180deg,var(--glass),var(--glass2));
-    backdrop-filter: blur(18px);
-    box-shadow: 0 60px 140px rgba(0,0,0,0.65);
-    animation: pop .6s cubic-bezier(.2,.9,.2,1) both;
-    transform-origin:center;
+  position: fixed;
+  left: 22%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+
+  width: 340px;
+  background:#fff;
+  border:3px solid #000;
+  border-radius:8px;
+  box-shadow:
+    6px 6px 0 #000,
+    10px 10px 0 rgba(0,0,0,0.08);
+
+  padding: 22px 20px;
+  animation: enter .6s cubic-bezier(.16,1,.3,1);
+  will-change: transform, opacity;
+
+  border-bottom-width:4px;
+
+  z-index: 10; /* stays above everything */
+}
+
+
+ @keyframes enter{
+  from{
+    opacity:0;
+    transform: translate(-50%, -48%) scale(.92);
   }
-  @keyframes pop{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
-  body.page-leave .card{animation: leave .55s cubic-bezier(.2,.9,.2,1) both;}
-  @keyframes leave{to{opacity:0;transform:translateY(22px) scale(.96);filter:blur(6px)}}
+  to{
+    opacity:1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+    /* page transition leave */
+  body.page-leave .card{
+  animation: leave .5s cubic-bezier(.4,0,.2,1) both;
+}
+
+@keyframes leave{
+  to{
+    opacity:0;
+    transform: translate(-50%, -46%) scale(.95);
+    filter: blur(4px);
+  }
+}
+
 
   .shake{animation: shake .35s ease;}
   @keyframes shake{
@@ -56,47 +124,95 @@
   }
 
   h1{font-size:22px;letter-spacing:-.2px}
-  .sub{margin-top:8px;color:var(--muted);font-size:13px;line-height:1.45}
+  .sub{
+  margin-top:12px;
+  font-size:10px;
+  line-height:1.8;
+  color:#000;
+  opacity:.75;
+}
+
 
   .field{margin-top:16px}
   label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-  input{
-    width:100%;
-    padding:12px 14px;border-radius:14px;
-    border:1px solid rgba(255,255,255,0.16);
-    background: rgba(0,0,0,0.22);
-    color:white;outline:none;transition:.25s ease;
+   input{
+  width:100%;
+  padding:10px;
+  margin-top:14px;
+  height:38px;
+  border:3px solid #000;
+  font-family:'Press Start 2P', monospace;
+  font-size:11px;
+  outline:none;
+}
+  input:focus{
+    border-color: rgba(34,211,238,0.46);
+    box-shadow:0 0 0 4px rgba(34,211,238,0.12);
   }
-  input:focus{border-color: rgba(34,211,238,0.46);box-shadow:0 0 0 4px rgba(34,211,238,0.12);}
 
   .btn{
-    width:100%;margin-top:18px;padding:12px 14px;
-    border-radius:14px;border:none;cursor:pointer;
-    font-weight:800;color:white;
-    background: linear-gradient(135deg,var(--accent),var(--accent2));
-    box-shadow: 0 18px 60px rgba(167,139,250,0.18);
-    transition: transform .16s ease, filter .2s ease;
+  margin-top:18px;
+  width:100%;
+  padding:10px;
+  border:3px solid #000;
+  background:#fff;
+  font-family:'Press Start 2P', monospace;
+  font-size:10px;
+  cursor:pointer;
+  box-shadow:4px 4px 0 #000;
+}
+
+.btn:hover{
+  transform:translate(-2px,-2px);
+  box-shadow:6px 6px 0 #000;
+}
+
+.btn:active{
+  transform:translate(2px,2px);
+  box-shadow:2px 2px 0 #000;
+}
+
+  .btn:disabled{
+    opacity:.7;
+    cursor:not-allowed;
+    transform:none
   }
-  .btn:hover{transform:translateY(-2px);filter:brightness(1.06)}
-  .btn:disabled{opacity:.7;cursor:not-allowed;transform:none}
 
   .msg{
-    margin-top:14px;padding:12px 14px;border-radius:16px;
-    border:1px solid rgba(255,255,255,0.16);
-    background: rgba(34,211,238,0.12);
-    font-size:13px;color: rgba(255,255,255,0.92);
-    display:none;line-height:1.45;
-    animation: pop2 .45s ease both;
-  }
+  margin-top:14px;
+  padding:10px;
+  border:2px solid #000;
+  background:#e0f7ff;
+  font-size:10px;
+  color:#000;
+  display:none;
+}
+
   @keyframes pop2{from{transform:translateY(6px);opacity:0}to{transform:translateY(0);opacity:1}}
-  .err{margin-top:12px;color:#fca5a5;font-size:13px;display:none}
+  .err{
+  margin-top:12px;
+  color:#ff4d4d;
+  font-size:10px;
+  display:none;
+}
+
 
   .footer{
-    margin-top:14px;display:flex;justify-content:space-between;
-    align-items:center;font-size:13px;color:rgba(255,255,255,0.7);
-  }
-  a{color:#22d3ee;text-decoration:none;font-weight:800}
-  a:hover{text-decoration:underline}
+  margin-top:14px;
+  display:flex;
+  justify-content:space-between;
+}
+
+.footer a{
+  font-size:10px;
+  color:#22d3ee;
+  text-decoration:none;
+}
+
+.footer a:hover{
+  text-decoration:underline;
+}
+
 
   .spinner{
     width:16px;height:16px;border-radius:50%;
@@ -105,6 +221,320 @@
     animation: spin .8s linear infinite;vertical-align:-3px;margin-right:8px;
   }
   @keyframes spin{to{transform:rotate(360deg)}}
+
+  .logo{
+  width:40px;
+  height:40px;
+  border:3px solid #000;
+  background:#e5e7eb;
+  box-shadow:3px 3px 0 #000;
+  border-radius:8px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:16px;
+  line-height:1;
+}
+
+ .pixelTitle{
+  margin:-22px -20px 16px;
+  padding:12px 14px;
+  background:#dcd7ff;
+  border-bottom:3px solid #000;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:12px;
+}
+
+.pixelDot{
+  position:fixed;
+  width:6px;
+  height:6px;
+  background:#000;
+  right:28px;
+  bottom:32px;
+  animation: drift 6s ease-in-out infinite alternate;
+  opacity:.35;
+}
+
+@keyframes drift{
+  from{ transform:translateY(0) }
+  to{ transform:translateY(-12px) }
+}
+
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0,0,0,0.02),
+      rgba(0,0,0,0.02) 1px,
+      transparent 1px,
+      transparent 2px
+    );
+  opacity:.15;
+}
+
+/* RIGHT BRAND PANEL */
+.brand-panel{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* content holder */
+.brand-inner{
+  position: absolute;
+  right: auto;
+  top: 50%;
+  left: 55%;
+  transform: translateY(-50%);
+  text-align: left;
+  max-width: 420px;
+}
+
+/* big pixel logo */
+.brand-logo{
+  font-size: 86px;          /* BIGGER */
+  line-height: 1;
+  letter-spacing: 4px;
+  color: #111;
+  margin-bottom: 20px;
+
+  text-shadow:
+    3px 3px 0 #a78bfa,
+    6px 6px 0 rgba(0,0,0,0.18);
+
+  animation: pixelPop 1.2s steps(4) infinite alternate;
+  overflow: hidden;
+  white-space: nowrap;
+  animation:
+    typeIn 1.2s steps(6) 1,
+    pixelPop 1.2s steps(4) infinite alternate;
+}
+@keyframes typeIn{
+  from { width: 0; }
+  to   { width: 100%; }
+}
+
+/* soft tagline */
+.brand-tagline{
+  font-size: 14px;          /* smaller */
+  line-height: 1.8;
+  color: rgba(0,0,0,0.55);
+  margin-bottom: 14px;
+
+  animation: pixelBlink 3s steps(2) infinite;
+}
+
+.brand-desc{
+  font-size: 12px;          /* smaller than logo */
+  line-height: 1.9;
+  color: rgba(0,0,0,0.45);
+  margin-bottom: 20px;
+
+  animation: pixelFloat 4s steps(3) infinite;
+}
+
+.brand-footer{
+  font-size: 11px;
+  line-height: 1.9;
+  color: rgba(0,0,0,0.35);
+
+  animation: pixelFade 5s steps(2) infinite;
+}
+
+/* =========================
+   PIXEL GLITTER
+========================= */
+
+.pixel-glitter{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pixel-glitter span{
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: white;
+  opacity: 0.8;
+  image-rendering: pixelated;
+
+  animation: sparkle 4s steps(2) infinite;
+}
+
+/* random positions */
+.pixel-glitter span:nth-child(1){ left:10%; top:20%; animation-delay:0s }
+.pixel-glitter span:nth-child(2){ left:30%; top:60%; animation-delay:1s }
+.pixel-glitter span:nth-child(3){ left:50%; top:15%; animation-delay:2s }
+.pixel-glitter span:nth-child(4){ left:70%; top:40%; animation-delay:.5s }
+.pixel-glitter span:nth-child(5){ left:85%; top:70%; animation-delay:1.5s }
+.pixel-glitter span:nth-child(6){ left:15%; top:75%; animation-delay:2.5s }
+.pixel-glitter span:nth-child(7){ left:40%; top:45%; animation-delay:.8s }
+.pixel-glitter span:nth-child(8){ left:60%; top:65%; animation-delay:1.2s }
+.pixel-glitter span:nth-child(9){ left:75%; top:20%; animation-delay:2.2s }
+.pixel-glitter span:nth-child(10){ left:90%; top:30%; animation-delay:3s }
+
+
+
+/* =========================
+   NEW PIXEL STARS (FOREGROUND)
+========================= */
+
+.pixel-glitter{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.pixel-glitter i{
+  position: absolute;
+  image-rendering: pixelated;
+  animation: twinkle 4s steps(2) infinite;
+}
+
+/* 4-point star */
+.star{
+  width: 4px;
+  height: 4px;
+  background: #e0f2ff;
+  box-shadow:
+    0 -6px #e0f2ff,
+    0 6px #e0f2ff,
+    -6px 0 #e0f2ff,
+    6px 0 #e0f2ff;
+}
+
+/* sparkle burst */
+.sparkle{
+  width: 4px;
+  height: 4px;
+  background: #c7eaff;
+  box-shadow:
+    0 -6px #c7eaff,
+    0 6px #c7eaff,
+    -6px 0 #c7eaff,
+    6px 0 #c7eaff,
+    -4px -4px #c7eaff,
+    4px -4px #c7eaff,
+    -4px 4px #c7eaff,
+    4px 4px #c7eaff;
+}
+
+/* tiny heart */
+.heart{
+  width: 4px;
+  height: 4px;
+  background: #ffd6e7;
+  box-shadow:
+    4px 0 #ffd6e7,
+    -4px 0 #ffd6e7,
+    0 4px #ffd6e7,
+    -2px 6px #ffd6e7,
+    2px 6px #ffd6e7;
+}
+
+/* positions */
+.s1{ left:18%; top:22%; animation-delay:0s }
+.s2{ left:46%; top:68%; animation-delay:1.6s }
+.s3{ left:72%; top:30%; animation-delay:2.8s }
+
+.sp1{ left:82%; top:46%; animation-delay:.8s }
+.sp2{ left:28%; top:76%; animation-delay:2.2s }
+
+.h1{ left:60%; top:38%; animation-delay:3.6s }
+
+@keyframes twinkle{
+  0%{ opacity:.3; transform:scale(1) }
+  50%{ opacity:1; transform:scale(1.5) }
+  100%{ opacity:.3; transform:scale(1) }
+}
+
+
+/* sparkle animation */
+@keyframes sparkle{
+  0%   { opacity:0.2; transform:scale(1); }
+  50%  { opacity:1; transform:scale(1.6); }
+  100% { opacity:0.2; transform:scale(1); }
+}
+
+
+
+/* responsive: hide on small screens */
+@media (max-width: 900px){
+  .brand-panel{
+    display: none;
+  }
+}
+
+
+@media (max-width: 900px){
+  .card{
+    left: 50%;
+  }
+}
+
+@keyframes pixelPop{
+  0%   { transform: translate(0,0); }
+  50%  { transform: translate(-2px,-2px); }
+  100% { transform: translate(0,0); }
+}
+
+@keyframes pixelBlink{
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 0.85; }
+}
+
+@keyframes pixelFloat{
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-6px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes pixelFade{
+  0%   { opacity: 0.25; }
+  50%  { opacity: 0.45; }
+  100% { opacity: 0.25; }
+}
+
+.eyeBtn{
+  position:absolute;
+  right:6px;
+  top:6px;
+  width:26px;
+  height:26px;
+  border-radius:6px;
+  border:2px solid #000;
+  background:#f3f4f6;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+
+  .eyeBtn:hover{
+    transform:scale(1.05);
+    background:#e5e7eb;
+  }
+
+  .eyeBtn svg{
+    width:17px;height:17px;opacity:.95
+  }
+  .eyeBtn:active{
+  transform:translate(1px,1px);
+}
+
 </style>
 </head>
 
@@ -112,6 +542,35 @@
   <div class="blob b1"></div>
   <div class="blob b2"></div>
   <div class="blob b3"></div>
+
+  <div class="brand-panel">
+  <div class="brand-inner">
+
+    <div class="brand-logo">
+      MOOD<br>MAP
+    </div>
+
+    <div class="brand-tagline">
+      maps places<br>
+      to moods<br>
+      quietly.
+    </div>
+
+    <div class="brand-desc">
+      discover cafés for focus,<br>
+      corners for calm,<br>
+      and places that feel right.
+    </div>
+
+    <div class="brand-footer">
+      ✦ location-aware<br>
+      ✦ mood-driven<br>
+      ✦ minimal noise
+    </div>
+
+  </div>
+</div>
+
 
   <div class="card" id="card">
     <h1>Forgot password</h1>
@@ -134,6 +593,27 @@
       <a class="go-anim" href="/reset" data-go="/reset">Go to reset →</a>
     </div>
   </div>
+
+  <div class="pixel-glitter">
+  <span></span><span></span><span></span><span></span>
+  <span></span><span></span><span></span><span></span>
+  <span></span><span></span><span></span><span></span>
+</div>
+
+<!-- NEW STAR GLITTER -->
+<div class="pixel-glitter">
+  <i class="star s1"></i>
+  <i class="star s2"></i>
+  <i class="star s3"></i>
+
+  <i class="sparkle sp1"></i>
+  <i class="sparkle sp2"></i>
+
+  <i class="heart h1"></i>
+</div>
+
+
+<div class="pixelDot"></div>
 
 <script>
 /* smooth navigation animation */

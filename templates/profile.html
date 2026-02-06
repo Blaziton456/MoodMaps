@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>MoodMap – Profile</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
 <!-- ✅ Cropper.js CDN -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
@@ -16,57 +16,108 @@
     --text:#e5e7eb;
   }
   body{
-    margin:0;
-    min-height:100vh;
-    font-family:Inter,system-ui;
-    color:var(--text);
-    background: radial-gradient(circle at 20% 20%, #a78bfa40, transparent 55%),
-                radial-gradient(circle at 80% 80%, #22d3ee35, transparent 55%),
-                linear-gradient(120deg,#020617,#0f172a);
-    overflow-x:hidden;
-  }
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(59,130,246,0.12),
+      rgba(59,130,246,0.12) 1px,
+      transparent 1px,
+      transparent 24px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(59,130,246,0.12),
+      rgba(59,130,246,0.12) 1px,
+      transparent 1px,
+      transparent 24px
+    ),
+    radial-gradient(circle at 30% 30%, #c7bfff 0%, transparent 45%),
+    radial-gradient(circle at 80% 70%, #9eeaff 0%, transparent 45%),
+    #eef6ff;
+
+  font-family:'Press Start 2P', monospace;
+  overflow-x:hidden;
+  background-size: 24px 24px, 24px 24px, auto, auto;
+  animation: gridDrift 40s linear infinite;
+}
+
+@keyframes gridDrift{
+  from { background-position: 0 0, 0 0, center, center; }
+  to   { background-position: 24px 24px, 24px 24px, center, center; }
+}
+
   .wrap{max-width:1050px;margin:auto;padding:40px 22px 90px;}
   .topRow{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px;}
   .brand{font-weight:1000;font-size:22px;}
   .btn{
-    padding:11px 14px;border-radius:999px;
-    border:1px solid rgba(255,255,255,0.16);
-    background:rgba(0,0,0,0.26);
-    color:white;text-decoration:none;
-    font-weight:1000;
-    cursor:pointer;
-    transition: transform .15s ease;
-  }
-  .btn:hover{transform:translateY(-2px)}
-  .btn.primary{border:none;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  padding:10px 14px;
+  border:3px solid #000;
+  background:#fff;
+  font-family:'Press Start 2P', monospace;
+  font-size:10px;
+  cursor:pointer;
+  box-shadow:4px 4px 0 #000;
+  text-decoration:none;
+  color:#000;
+}
+
+.btn:hover{
+  transform:translate(-2px,-2px);
+  box-shadow:6px 6px 0 #000;
+}
+
+.btn:active{
+  transform:translate(2px,2px);
+  box-shadow:2px 2px 0 #000;
+}
+
+.btn.primary{
+  background:#9ae6ff;
+}
+
   .grid{display:grid;grid-template-columns: 1fr 1fr;gap:18px;margin-top:18px;}
   @media(max-width:900px){.grid{grid-template-columns:1fr}}
 
   .card{
-    border-radius:22px;border:1px solid rgba(255,255,255,0.18);
-    background: rgba(255,255,255,0.08);
-    backdrop-filter: blur(18px);
-    box-shadow: 0 60px 140px rgba(0,0,0,0.65);
-    padding:18px;
-  }
+  background:#fff;
+  border:3px solid #000;
+  border-radius:8px;
+  box-shadow:
+    6px 6px 0 #000,
+    10px 10px 0 rgba(0,0,0,0.08);
+  padding:18px;
+}
+
   .profileRow{display:flex;gap:14px;align-items:center;}
   .pfp{
-    width:72px;height:72px;border-radius:22px;
-    border:1px solid rgba(255,255,255,0.18);
-    overflow:hidden;background:rgba(0,0,0,0.22);
-    display:grid;place-items:center;
-    font-weight:1000;font-size:22px;
-  }
+  width:72px;
+  height:72px;
+  border:3px solid #000;
+  background:#e5e7eb;
+  box-shadow:3px 3px 0 #000;
+  border-radius:8px;
+  overflow:hidden;
+  display:grid;
+  place-items:center;
+  font-weight:1000;
+}
+
   .pfp img{width:100%;height:100%;object-fit:cover}
   .name{font-weight:1000;font-size:18px}
   .user{opacity:.7;font-size:13px;margin-top:6px}
   .metaRow{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap}
   .badge{
-    padding:7px 12px;border-radius:999px;
-    border:1px solid rgba(255,255,255,0.14);
-    background:rgba(0,0,0,0.22);
-    font-size:12px;font-weight:900;
-  }
+  padding:6px 10px;
+  border:2px solid #000;
+  background:#e0f7ff;
+  font-size:10px;
+}
+
 
   /* ✅ Followers/Following row */
   .ffRow{
@@ -118,16 +169,19 @@
 
   /* share card */
   .shareCard{
-    border-radius:22px;border:1px solid rgba(255,255,255,0.18);
-    background: radial-gradient(circle at 15% 20%, rgba(167,139,250,0.24), transparent 55%),
-                radial-gradient(circle at 85% 80%, rgba(34,211,238,0.24), transparent 55%),
-                rgba(0,0,0,0.22);
-    padding:18px;position:relative;overflow:hidden;
-  }
+  background:#fff;
+  border:3px solid #000;
+  border-radius:8px;
+  box-shadow:
+    6px 6px 0 #000,
+    10px 10px 0 rgba(0,0,0,0.08);
+  padding:18px;
+}
+
   .shareTitle{font-weight:1000;font-size:14px}
   .shareSub{opacity:.7;font-size:12px;margin-top:7px;line-height:1.5}
   .shareInner{
-    margin-top:14px;border-radius:20px;border:1px solid rgba(255,255,255,0.14);
+    margin-top:14px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);
     background: rgba(255,255,255,0.06);
     padding:16px;
   }
@@ -155,7 +209,7 @@
     top:50%;
     transform:translate(-50%,-50%) scale(.96);
     width:min(560px,92vw);
-    border-radius:22px;
+    border-radius:8px;
     border:1px solid rgba(255,255,255,0.18);
     background:linear-gradient(180deg, rgba(20,25,40,0.92), rgba(10,12,20,0.78));
     backdrop-filter: blur(20px);
@@ -193,7 +247,7 @@
 
   .cropArea{
     margin-top:12px;
-    border-radius:18px;
+    border-radius:8px;
     overflow:hidden;
     border:1px solid rgba(255,255,255,0.14);
     background: rgba(0,0,0,0.22);
@@ -229,49 +283,56 @@
   #ffBackdrop{
     position:fixed;
     inset:0;
-    background:rgba(0,0,0,0.55);
+    background:rgba(0,0,0,0.4);
     backdrop-filter: blur(12px);
-    z-index:260;
+    z-index:999;
     opacity:0;
     pointer-events:none;
     transition: opacity .18s ease;
+    display: none;
   }
   #ffBackdrop.active{
     opacity:1;
     pointer-events:auto;
+    display: block;
   }
 
   #ffModal{
-    position:fixed;
-    left:50%;
-    top:50%;
-    transform:translate(-50%,-50%) scale(.98);
-    width:min(560px,92vw);
-    max-height:min(76vh,680px);
-    overflow:hidden;
-    border-radius:22px;
-    border:1px solid rgba(255,255,255,0.18);
-    background:linear-gradient(180deg, rgba(20,25,40,0.94), rgba(10,12,20,0.82));
-    box-shadow: 0 60px 170px rgba(0,0,0,0.78);
-    z-index:261;
-    opacity:0;
-    pointer-events:none;
-    transition: opacity .18s ease, transform .18s ease;
-  }
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, 92vw);
+  max-height: 76vh;
+  overflow: hidden;
+
+  background: #fff;
+  border: 3px solid #000;
+  box-shadow: 6px 6px 0 #000;
+
+  z-index: 1000;
+
+  display: none;   /* important */
+}
+
+
+
   #ffModal.active{
+    display: block;
     opacity:1;
     pointer-events:auto;
     transform:translate(-50%,-50%) scale(1);
   }
 
   .ffTop{
-    padding:14px 14px 10px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:12px;
-    border-bottom: 1px solid rgba(255,255,255,0.10);
-  }
+  padding:10px 12px;
+  background:#dcd7ff;
+  border-bottom:3px solid #000;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
   .ffTitle{
     font-weight:1000;
     font-size:14px;
@@ -385,7 +446,7 @@
   .relBadge{
     font-size:11px;
     padding:7px 10px;
-    border-radius:999px;
+    border-radius:8px;
     border:1px solid rgba(255,255,255,0.12);
     background: rgba(0,0,0,0.20);
     font-weight:1000;
@@ -424,6 +485,28 @@
     font-size:13px;
     line-height:1.6;
   }
+
+  .pixelTitle{
+  margin:-18px -18px 16px;
+  padding:10px 12px;
+  background:#dcd7ff;
+  border-bottom:3px solid #000;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:12px;
+}
+
+.logo{
+  width:18px;
+  height:18px;
+  border:2px solid #000;
+  background:#9ae6ff;
+  display:grid;
+  place-items:center;
+  font-size:10px;
+}
+
 </style>
 </head>
 
@@ -595,6 +678,8 @@
       </div>
     {% endif %}
   </div>
+
+  
 
 </div>
 

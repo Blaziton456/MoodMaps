@@ -238,12 +238,15 @@ select, input[type="text"]{
   font-size: 11px;
 }
 
-input[type="text"]{width:340px}
+input[type="text"]{
+  width:340px
+}
 
 button:hover{
   transform:translateY(-2px);
   box-shadow: 0 18px 70px var(--accent-soft);
 }
+
 button:disabled{
   opacity:.55;
   cursor:not-allowed;
@@ -284,7 +287,9 @@ button:disabled{
   transform: translateY(-2px);
   border-color: rgba(255,255,255,0.24);
 }
-.iconBtn.pinned{border-color: var(--accent)}
+.iconBtn.pinned{
+  border-color: var(--accent)
+}
 
 /* skeleton */
 .skeleton{
@@ -302,7 +307,11 @@ button:disabled{
   transform:translateX(-100%);
   animation:shimmer 1.4s infinite;
 }
-@keyframes shimmer{to{transform:translateX(100%)}}
+@keyframes shimmer{
+  to{
+    transform:translateX(100%)
+  }
+}
 
 /* ================= Premium Place Modal ================= */
 #modalBackdrop{
@@ -411,11 +420,23 @@ button:disabled{
   transform: translateY(0) scale(1);
 }
 
-.reqInner{ padding: 14px 14px 12px; }
-.reqTitle{ margin:0; font-size:15px; font-weight:1000; }
-.reqSub{ margin-top:6px; font-size:12px; opacity:.70; }
+.reqInner{
+  padding: 14px 14px 12px; 
+}
+.reqTitle{ 
+  margin:0; 
+  font-size:15px; 
+  font-weight:1000; 
+}
+.reqSub{ 
+  margin-top:6px; 
+  font-size:12px; 
+  opacity:.70; 
+}
 
-.reqList{ margin-top:12px; }
+.reqList{ 
+  margin-top:12px; 
+}
 
 .smallBtn{
   border:none;
@@ -456,9 +477,19 @@ button:disabled{
   background: rgba(0,0,0,0.20);
   margin-bottom:10px;
 }
-.reqUser{ font-weight:1000; font-size:13px; }
-.reqMeta{ font-size:12px; opacity:.68; margin-top:4px; }
-.reqBtns{ display:flex; gap:10px; }
+.reqUser{ 
+  font-weight:1000; 
+  font-size:13px; 
+}
+.reqMeta{ 
+  font-size:12px; 
+  opacity:.68; 
+  margin-top:4px;
+ }
+.reqBtns{ 
+  display:flex; 
+  gap:10px; 
+}
 
 
 /* ===========================================================

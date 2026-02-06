@@ -20,6 +20,7 @@
 
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
+
 body{
   margin:0;
   min-height:100vh;
@@ -55,9 +56,14 @@ body{
   background-size: 24px 24px, 24px 24px, auto, auto;
   animation: gridDrift 40s linear infinite;
 }
+
 @keyframes gridDrift{
-  from { background-position: 0 0, 0 0, center, center; }
-  to   { background-position: 24px 24px, 24px 24px, center, center; }
+  from { 
+    background-position: 0 0, 0 0, center, center; 
+  }
+  to   {
+     background-position: 24px 24px, 24px 24px, center, center; 
+    }
 }
 
 
@@ -71,13 +77,31 @@ body{
     animation: float 10s ease-in-out infinite;
     display: none;
   }
-  .b1{left:-150px;top:-170px;background:#a78bfa;}
-  .b2{right:-180px;top:120px;background:#22d3ee;animation-delay:-4s}
-  .b3{left:35%;bottom:-240px;width:420px;height:420px;background:#60a5fa;animation-delay:-7s}
+  .b1{
+    left:-150px;top:-170px;
+    background:#a78bfa;
+  }
+  .b2{
+    right:-180px;top:120px;
+    background:#22d3ee;
+    animation-delay:-4s
+  }
+  .b3{
+    left:35%;
+    bottom:-240px;
+    width:420px;
+    height:420px;
+    background:#60a5fa;
+    animation-delay:-7s
+  }
 
   @keyframes float{
-    0%,100%{transform:translate(0,0) scale(1)}
-    50%{transform:translate(25px,-18px) scale(1.06)}
+    0%,100%{
+      transform:translate(0,0) scale(1)
+    }
+    50%{
+      transform:translate(25px,-18px) scale(1.06)
+    }
   }
 
   
@@ -165,7 +189,9 @@ body{
     display:none;
   }
 
-  .field{margin-top:14px}
+  .field{
+    margin-top:14px
+  }
   .field label{
     display:block;
     font-size:12px;
@@ -300,7 +326,9 @@ input{
   text-decoration:underline;
 }
 
-  a:hover{text-decoration:underline}
+  a:hover{
+    text-decoration:underline
+  }
 
   .err{
     margin-top:12px;
@@ -332,7 +360,11 @@ input{
     vertical-align:-3px;
     margin-right:8px;
   }
-  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes spin{
+    to{
+      transform:rotate(360deg)
+    }
+  }
 
   .pixelTitle{
   margin:-22px -20px 16px;
@@ -380,8 +412,12 @@ label{
 }
 
 @keyframes drift{
-  from{ transform:translateY(0) }
-  to{ transform:translateY(-12px) }
+  from{ 
+    transform:translateY(0) 
+  }
+  to{ 
+    transform:translateY(-12px) 
+  }
 }
 
 body::after{
