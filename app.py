@@ -6,6 +6,7 @@ import requests
 import random
 import os
 import base64
+import datetime
 from math import radians, cos, sin, asin, sqrt
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -1897,6 +1898,12 @@ def api_place_details():
             "addr:state": _clean_tag_value(tags.get("addr:state") or ""),
         }
     }
+    place_out["description"] = generate_place_description(name, category, tags)
+    place_out["rating"] = compute_osm_rating(tags)
+    place_out["crowd_level"] = estimate_crowd_osm(category)
+    place_out["menu_preview"] = build_menu_from_cuisine(cuisine)
+
+
 
     if cache_key:
         _cache_set(cache_key, place_out)
@@ -1990,6 +1997,86 @@ def recommend():
 
     return jsonify(places[:30])
 
+def generate_place_description(name, category, tags):
+    parts = []
+
+    if tags.get("cuisine"):
+        parts.append(f"Serves {tags.get('cuisine')} cuisine")
+
+    if tags.get("outdoor_seating") == "yes":
+        parts.append("offers outdoor seating")
+
+    if tags.get("internet_access") in ["yes", "wifi", "wlan"]:
+        parts.append("has Wi-Fi available")
+
+    if tags.get("wheelchair") == "yes":
+        parts.append("wheelchair accessible")
+
+    if tags.get("takeaway") == "yes":
+        parts.append("provides takeaway")
+
+    if not parts:
+        return f"{name} is a {category.replace('_',' ')} located nearby."
+
+    return f"{name} is a {category.replace('_',' ')} that " + ", ".join(parts) + "."
+
+def estimate_crowd_osm(category):
+    hour = datetime.datetime.now().hour
+
+    if category in ["restaurant", "cafe"]:
+        if 19 <= hour <= 21:
+            return "Busy"
+        if 12 <= hour <= 14:
+            return "Moderate"
+        return "Low"
+
+    if category == "fast_food":
+        if 13 <= hour <= 15:
+            return "Busy"
+        return "Moderate"
+
+    return "Low"
+
+def compute_osm_rating(tags):
+    score = 3.2  # base
+
+    if tags.get("website"):
+        score += 0.3
+    if tags.get("phone"):
+        score += 0.2
+    if tags.get("opening_hours"):
+        score += 0.3
+    if tags.get("internet_access") in ["yes", "wifi", "wlan"]:
+        score += 0.4
+    if tags.get("outdoor_seating") == "yes":
+        score += 0.3
+    if tags.get("wheelchair") == "yes":
+        score += 0.2
+
+    return round(min(score, 5.0), 1)
+
+def format_address(tags):
+    street = tags.get("addr:street", "")
+    house = tags.get("addr:housenumber", "")
+    city = tags.get("addr:city", "")
+    state = tags.get("addr:state", "")
+    postcode = tags.get("addr:postcode", "")
+
+    parts = [house, street, city, state, postcode]
+    return ", ".join([p for p in parts if p])
+
+def build_menu_from_cuisine(cuisine):
+    if not cuisine:
+        return []
+
+    items = cuisine.split(";")
+    menu = []
+
+    for item in items:
+        menu.append(f"Popular {item.strip().title()} Specials")
+
+    return menu
+
 
 # =========================================================
 # ✅ DEPLOY RUN (Render/Cloud compatible)
@@ -1997,4 +2084,4 @@ def recommend():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
+    

@@ -48,6 +48,7 @@ body {
 }
 
 
+
 .noise{
   display:none !important;
   position:fixed;
@@ -1401,7 +1402,206 @@ select {
   z-index: 5;
 }
 
+  .pixelTitle{
+  margin:-22px -20px 16px;
+  padding:12px 14px;
+  background:#dcd7ff;
+  border-bottom:3px solid #000;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:12px;
+}
 
+.pixelDot{
+  position:fixed;
+  width:6px;
+  height:6px;
+  background:#000;
+  right:28px;
+  bottom:32px;
+  animation: drift 6s ease-in-out infinite alternate;
+  opacity:.35;
+}
+
+@keyframes drift{
+  from{ transform:translateY(0) }
+  to{ transform:translateY(-12px) }
+}
+
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0,0,0,0.02),
+      rgba(0,0,0,0.02) 1px,
+      transparent 1px,
+      transparent 2px
+    );
+  opacity:.15;
+}
+
+
+/* =========================
+   PIXEL GLITTER
+========================= */
+
+.pixel-glitter{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pixel-glitter span{
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: white;
+  opacity: 0.8;
+  image-rendering: pixelated;
+
+  animation: sparkle 4s steps(2) infinite;
+}
+
+/* random positions */
+.pixel-glitter span:nth-child(1){ left:10%; top:20%; animation-delay:0s }
+.pixel-glitter span:nth-child(2){ left:30%; top:60%; animation-delay:1s }
+.pixel-glitter span:nth-child(3){ left:50%; top:15%; animation-delay:2s }
+.pixel-glitter span:nth-child(4){ left:70%; top:40%; animation-delay:.5s }
+.pixel-glitter span:nth-child(5){ left:85%; top:70%; animation-delay:1.5s }
+.pixel-glitter span:nth-child(6){ left:15%; top:75%; animation-delay:2.5s }
+.pixel-glitter span:nth-child(7){ left:40%; top:45%; animation-delay:.8s }
+.pixel-glitter span:nth-child(8){ left:60%; top:65%; animation-delay:1.2s }
+.pixel-glitter span:nth-child(9){ left:75%; top:20%; animation-delay:2.2s }
+.pixel-glitter span:nth-child(10){ left:90%; top:30%; animation-delay:3s }
+
+
+
+/* =========================
+   NEW PIXEL STARS (FOREGROUND)
+========================= */
+
+.pixel-glitter{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.pixel-glitter i{
+  position: absolute;
+  image-rendering: pixelated;
+  animation: twinkle 4s steps(2) infinite;
+}
+
+/* 4-point star */
+.star{
+  width: 4px;
+  height: 4px;
+  background: #e0f2ff;
+  box-shadow:
+    0 -6px #e0f2ff,
+    0 6px #e0f2ff,
+    -6px 0 #e0f2ff,
+    6px 0 #e0f2ff;
+}
+
+/* sparkle burst */
+.sparkle{
+  width: 4px;
+  height: 4px;
+  background: #c7eaff;
+  box-shadow:
+    0 -6px #c7eaff,
+    0 6px #c7eaff,
+    -6px 0 #c7eaff,
+    6px 0 #c7eaff,
+    -4px -4px #c7eaff,
+    4px -4px #c7eaff,
+    -4px 4px #c7eaff,
+    4px 4px #c7eaff;
+}
+
+/* tiny heart */
+.heart{
+  width: 4px;
+  height: 4px;
+  background: #ffd6e7;
+  box-shadow:
+    4px 0 #ffd6e7,
+    -4px 0 #ffd6e7,
+    0 4px #ffd6e7,
+    -2px 6px #ffd6e7,
+    2px 6px #ffd6e7;
+}
+
+/* positions */
+.s1{ left:18%; top:22%; animation-delay:0s }
+.s2{ left:46%; top:68%; animation-delay:1.6s }
+.s3{ left:72%; top:30%; animation-delay:2.8s }
+
+.sp1{ left:82%; top:46%; animation-delay:.8s }
+.sp2{ left:28%; top:76%; animation-delay:2.2s }
+
+.h1{ left:60%; top:38%; animation-delay:3.6s }
+
+@keyframes twinkle{
+  0%{ opacity:.3; transform:scale(1) }
+  50%{ opacity:1; transform:scale(1.5) }
+  100%{ opacity:.3; transform:scale(1) }
+}
+
+
+/* sparkle animation */
+@keyframes sparkle{
+  0%   { opacity:0.2; transform:scale(1); }
+  50%  { opacity:1; transform:scale(1.6); }
+  100% { opacity:0.2; transform:scale(1); }
+}
+
+
+
+/* responsive: hide on small screens */
+@media (max-width: 900px){
+  .brand-panel{
+    display: none;
+  }
+}
+
+
+@media (max-width: 900px){
+  .card{
+    left: 50%;
+  }
+}
+
+@keyframes pixelPop{
+  0%   { transform: translate(0,0); }
+  50%  { transform: translate(-2px,-2px); }
+  100% { transform: translate(0,0); }
+}
+
+@keyframes pixelBlink{
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 0.85; }
+}
+
+@keyframes pixelFloat{
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-6px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes pixelFade{
+  0%   { opacity: 0.25; }
+  50%  { opacity: 0.45; }
+  100% { opacity: 0.25; }
+}
 
 /* MOBILE FALLBACK */
 @media (max-width: 860px){
@@ -1435,7 +1635,7 @@ select {
 
     <!-- tabs -->
     <div id="browserTabs" class="tabsBar">
-      <div class="tab active" data-tab="home">
+      <div class="tabodyb active" data-tab="home">
         <span class="tabTitle">MoodMap</span>
       </div>
       <div class="tab addTab">+</div>
@@ -1538,6 +1738,21 @@ select {
   </div>
 </div>
 
+<div class="pixel-glitter">
+  <i class="star s1"></i>
+  <i class="star s2"></i>
+  <i class="star s3"></i>
+
+  <i class="sparkle sp1"></i>
+  <i class="sparkle sp2"></i>
+
+  <i class="heart h1"></i>
+</div>
+
+
+<div class="pixelDot"></div>
+
+
 
 <!-- ================= SCRIPTS ================= -->
 
@@ -1574,40 +1789,86 @@ select {
   }
 
   function openPlaceTab(placeId, title, placeData = {}) {
-    const tabId = "place-" + placeId;
+  const tabId = "place-" + placeId;
 
-    const existing = document.querySelector(`.tab[data-tab="${tabId}"]`);
-    if (existing) {
-      activateTab(tabId);
-      return;
-    }
+  const existing = document.querySelector(`.tab[data-tab="${tabId}"]`);
+  if (existing) {
+    activateTab(tabId);
+    return;
+  }
 
-    const tab = document.createElement("div");
-    tab.className = "tab";
-    tab.dataset.tab = tabId;
-    tab.innerHTML = `
-      <span class="tabTitle">${title}</span>
-      <span class="tabClose">✕</span>
-    `;
-    tabsBar.insertBefore(tab, tabsBar.querySelector(".addTab"));
+  const tab = document.createElement("div");
+  tab.className = "tab";
+  tab.dataset.tab = tabId;
+  tab.innerHTML = `
+    <span class="tabTitle">${title}</span>
+    <span class="tabClose">✕</span>
+  `;
+  tabsBar.insertBefore(tab, tabsBar.querySelector(".addTab"));
 
-    const page = document.createElement("div");
-    page.className = "tabPage";
-    page.dataset.tabPage = tabId;
-    page.innerHTML = `
-      <div class="app">
-        <div class="panel">
-          <h2>${placeData.name || title}</h2>
-          <div style="opacity:.7;margin-top:6px">
-            ${(placeData.category || "place").replaceAll("_"," ")}
+  const page = document.createElement("div");
+  page.className = "tabPage";
+  page.dataset.tabPage = tabId;
+
+  page.innerHTML = `
+    <div class="app">
+      <div class="panel">
+        <div style="opacity:.6">Loading place details...</div>
+      </div>
+    </div>
+  `;
+
+  tabViewport.appendChild(page);
+  activateTab(tabId);
+
+  // 🔥 NOW FETCH REAL DETAILS
+  fetch(`/api/place_details?type=${placeData.osm_type}&id=${placeData.osm_id}&lat=${placeData.lat}&lon=${placeData.lon}&name=${encodeURIComponent(placeData.name)}&category=${placeData.category}`)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success) {
+        page.innerHTML = `<div class="app"><div class="panel">Failed to load.</div></div>`;
+        return;
+      }
+
+      const p = data.place;
+
+      page.innerHTML = `
+        <div class="app">
+          <div class="panel">
+
+            <h2>${p.name}</h2>
+            <div style="opacity:.7;margin-bottom:12px">
+              ${p.category.replaceAll("_"," ")}
+            </div>
+
+            <div style="margin:10px 0">
+              ⭐ ${p.rating || "—"} • 👥 ${p.crowd_level || "—"}
+            </div>
+
+            <div style="margin:6px 0">📍 ${p.address || "No address available"}</div>
+            <div style="margin:6px 0">📞 ${p.phone || "Not listed"}</div>
+
+            ${p.website ? `<div style="margin:6px 0">🌐 <a href="${p.website}" target="_blank">Visit Website</a></div>` : ""}
+
+            ${p.opening_hours ? `<div style="margin:6px 0">🕒 ${p.opening_hours}</div>` : ""}
+
+            <div style="margin-top:14px;font-size:13px;line-height:1.5">
+              ${p.description || ""}
+            </div>
+
+            ${p.menu_preview && p.menu_preview.length ? `
+              <div style="margin-top:16px">
+                <strong>Menu Highlights</strong>
+                ${p.menu_preview.map(i => `<div>• ${i}</div>`).join("")}
+              </div>
+            ` : ""}
+
           </div>
         </div>
-      </div>
-    `;
+      `;
+    });
+}
 
-    tabViewport.appendChild(page);
-    activateTab(tabId);
-  }
 
   tabsBar.addEventListener("click", e => {
     if (e.target.classList.contains("tabClose")) return;
