@@ -753,7 +753,18 @@ def api_set_mood():
         return jsonify({"success": False})
 
     mood = (request.json.get("mood") or "").strip()
-    if mood not in ["work", "date", "quick_bite", "budget"]:
+    ALLOWED_MOODS = [
+    "work",
+    "date",
+    "quick_bites",
+    "pocket_friendly",
+    "calm",
+    "high_adrenaline",
+    "exploring",
+    "late_night"
+]
+
+    if mood not in ALLOWED_MOODS:
         return jsonify({"success": False})
 
     with get_db() as db:
@@ -1242,15 +1253,6 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * asin(sqrt(a))
     return 6371 * c
 
-
-MOOD_TAGS = {
-    "work": ["cafe"],
-    "date": ["restaurant"],
-    "quick_bite": ["fast_food"],
-    "budget": ["restaurant", "fast_food"]
-}
-
-
 def _safe_str(x):
     return (x or "").strip()
 
@@ -1293,23 +1295,22 @@ EXPENSIVE_KEYWORDS = [
 
 
 def _hard_filter_place(mood: str, tags: dict):
-    """
-    ✅ Critical filter: prevents wrong places from leaking between moods.
-    """
     amenity = _safe_str(tags.get("amenity", "")).lower()
     name = _safe_str(tags.get("name", "")).lower()
 
-    if mood == "quick_bite":
-        return amenity == "fast_food"
+    # WORK
+    if mood == "work":
+        if amenity == "coworking_space":
+            return True
+        if _safe_str(tags.get("office")).lower() == "coworking":
+            return True
+        if amenity == "cafe":
+            wifi_ok = _safe_str(tags.get("internet_access")).lower() in ["yes", "wlan", "wifi"]
+            kw_ok = _contains_any(name, WORK_KEYWORDS)
+            return wifi_ok or kw_ok
+        return False
 
-    if mood == "budget":
-        # budget should NOT include cafes
-        if amenity not in ["restaurant", "fast_food", "food_court"]:
-            return False
-        if _contains_any(name, EXPENSIVE_KEYWORDS):
-            return False
-        return True
-
+    # DATE
     if mood == "date":
         if amenity not in ["cafe", "restaurant"]:
             return False
@@ -1317,7 +1318,6 @@ def _hard_filter_place(mood: str, tags: dict):
             return False
         if _contains_any(name, DATE_BAD_KEYWORDS):
             return False
-        # allow date vibe if keywords or outdoor seating or wheelchair
         vibe_ok = (
             _contains_any(name, DATE_KEYWORDS)
             or _safe_str(tags.get("outdoor_seating")).lower() == "yes"
@@ -1325,21 +1325,57 @@ def _hard_filter_place(mood: str, tags: dict):
         )
         return vibe_ok
 
-    if mood == "work":
-        # coworking
-        if amenity == "coworking_space":
-            return True
-        if _safe_str(tags.get("office")).lower() == "coworking":
-            return True
+    # QUICK BITES
+    if mood == "quick_bites":
+        return amenity == "fast_food"
 
-        if amenity == "cafe":
-            wifi_ok = _safe_str(tags.get("internet_access")).lower() in ["yes", "wlan", "wifi"]
-            kw_ok = _contains_any(name, WORK_KEYWORDS)
-            return wifi_ok or kw_ok
+    # POCKET FRIENDLY
+    if mood == "pocket_friendly":
+        if amenity not in ["restaurant", "fast_food", "food_court"]:
+            return False
+        if _contains_any(name, EXPENSIVE_KEYWORDS):
+            return False
+        return True
 
-        return False
+    # CALM
+    if mood == "calm":
+        return (
+            tags.get("leisure") == "park"
+            or tags.get("tourism") == "viewpoint"
+            or tags.get("amenity") == "bench"
+        )
 
-    return True
+    # HIGH ON ADRENALINE
+    if mood == "high_adrenaline":
+        return (
+            tags.get("amenity") == "gym"
+            or tags.get("leisure") in [
+                "fitness_centre",
+                "sports_centre",
+                "swimming_pool",
+                "pitch",
+                "track"
+            ]
+            or tags.get("sport") is not None
+        )
+
+    # EXPLORING
+    if mood == "exploring":
+        return (
+            tags.get("tourism") is not None
+            or tags.get("historic") is not None
+            or tags.get("natural") is not None
+        )
+
+    # LATE NIGHT
+    if mood == "late_night":
+        return amenity in [
+            "cafe", "restaurant", "fast_food",
+            "bar", "pub", "nightclub"
+        ]
+
+    return False
+
 
 
 def _score_place(mood: str, tags: dict, distance_km: float):
@@ -1419,40 +1455,96 @@ def _score_place(mood: str, tags: dict, distance_km: float):
             score += 22
         if _contains_any(name, EXPENSIVE_KEYWORDS):
             score -= 18
+    
+    elif mood == "late_night":
+        if tags.get("amenity") in [
+            "bar", "pub", "nightclub"
+        ]:
+            score += 30
+
+        opening = (tags.get("opening_hours") or "").lower()
+
+        # boost 24/7
+        if "24/7" in opening:
+            score += 40
+
+        # boost midnight+
+        if "24:00" in opening or "02:00" in opening or "03:00" in opening:
+            score += 25
+
+        # small boost if opening hours exist
+        if opening:
+            score += 8
+
 
     return score
 
 
 def fetch_places_for_mood(mood, lat, lon, radius=5000):
-    """
-    mood-specific Overpass query building
-    """
     lat = float(lat)
     lon = float(lon)
 
     blocks = []
 
     if mood == "work":
-        blocks.append(f'node["amenity"="coworking_space"](around:{radius},{lat},{lon});')
-        blocks.append(f'node["office"="coworking"](around:{radius},{lat},{lon});')
-        blocks.append(f'node["amenity"="cafe"](around:{radius},{lat},{lon});')
+        blocks += [
+            f'node["amenity"="coworking_space"](around:{radius},{lat},{lon});',
+            f'node["office"="coworking"](around:{radius},{lat},{lon});',
+            f'node["amenity"="cafe"](around:{radius},{lat},{lon});'
+        ]
 
     elif mood == "date":
-        blocks.append(f'node["amenity"="cafe"](around:{radius},{lat},{lon});')
-        blocks.append(f'node["amenity"="restaurant"](around:{radius},{lat},{lon});')
-        blocks.append(f'node["amenity"="cafe"]["outdoor_seating"="yes"](around:{radius},{lat},{lon});')
-        blocks.append(f'node["amenity"="restaurant"]["outdoor_seating"="yes"](around:{radius},{lat},{lon});')
-        blocks.append(f'node["amenity"="cafe"]["internet_access"="yes"](around:{radius},{lat},{lon});')
-        blocks.append(f'node["amenity"="restaurant"]["internet_access"="yes"](around:{radius},{lat},{lon});')
+        blocks += [
+            f'node["amenity"="cafe"](around:{radius},{lat},{lon});',
+            f'node["amenity"="restaurant"](around:{radius},{lat},{lon});',
+            f'node["outdoor_seating"="yes"](around:{radius},{lat},{lon});'
+        ]
 
-    elif mood == "quick_bite":
-        blocks.append(f'node["amenity"="fast_food"](around:{radius},{lat},{lon});')
+    elif mood == "quick_bites":
+        blocks += [
+            f'node["amenity"="fast_food"](around:{radius},{lat},{lon});'
+        ]
 
-    elif mood == "budget":
-        # ✅ FIX: no cafes in budget at all
-        blocks.append(f'node["amenity"="restaurant"](around:{radius},{lat},{lon});')
-        blocks.append(f'node["amenity"="fast_food"](around:{radius},{lat},{lon});')
-        blocks.append(f'node["amenity"="food_court"](around:{radius},{lat},{lon});')
+    elif mood == "pocket_friendly":
+        blocks += [
+            f'node["amenity"="restaurant"](around:{radius},{lat},{lon});',
+            f'node["amenity"="fast_food"](around:{radius},{lat},{lon});',
+            f'node["amenity"="food_court"](around:{radius},{lat},{lon});',
+            f'node["amenity"="street_vendor"](around:{radius},{lat},{lon});'
+        ]
+
+    elif mood == "calm":
+        blocks += [
+            f'node["leisure"="park"](around:{radius},{lat},{lon});',
+            f'node["tourism"="viewpoint"](around:{radius},{lat},{lon});',
+            f'node["amenity"="bench"](around:{radius},{lat},{lon});'
+        ]
+
+    elif mood == "high_adrenaline":
+        blocks += [
+            f'node["amenity"="gym"](around:{radius},{lat},{lon});',
+            f'node["leisure"="fitness_centre"](around:{radius},{lat},{lon});',
+            f'node["leisure"="sports_centre"](around:{radius},{lat},{lon});',
+            f'node["leisure"="swimming_pool"](around:{radius},{lat},{lon});',
+            f'node["sport"](around:{radius},{lat},{lon});'
+        ]
+
+    elif mood == "exploring":
+        blocks += [
+            f'node["tourism"](around:{radius},{lat},{lon});',
+            f'node["historic"](around:{radius},{lat},{lon});',
+            f'node["natural"](around:{radius},{lat},{lon});'
+        ]
+
+    elif mood == "late_night":
+        blocks += [
+            f'node["amenity"="cafe"](around:{radius},{lat},{lon});',
+            f'node["amenity"="restaurant"](around:{radius},{lat},{lon});',
+            f'node["amenity"="fast_food"](around:{radius},{lat},{lon});',
+            f'node["amenity"="bar"](around:{radius},{lat},{lon});',
+            f'node["amenity"="pub"](around:{radius},{lat},{lon});',
+            f'node["amenity"="nightclub"](around:{radius},{lat},{lon});'
+        ]
 
     query = f"""
     [out:json][timeout:30];
@@ -1461,6 +1553,7 @@ def fetch_places_for_mood(mood, lat, lon, radius=5000):
     );
     out 160;
     """
+
 
     headers = {
         "User-Agent": "MoodMap/1.0 (contact: moodmap)",
@@ -1922,19 +2015,38 @@ def recommend():
     user_lat = data.get("latitude")
     user_lon = data.get("longitude")
 
-    if mood not in ["work", "date", "quick_bite", "budget"]:
+    ALLOWED_MOODS = [
+    "work",
+    "date",
+    "quick_bites",
+    "pocket_friendly",
+    "calm",
+    "high_adrenaline",
+    "exploring",
+    "late_night"
+    ]
+    if mood not in ALLOWED_MOODS:
         return jsonify([])
+
 
     if not user_lat or not user_lon:
         return jsonify([])
 
-    radius = 4500
+    radius = 5000
     if mood == "work":
         radius = 6000
-    if mood == "quick_bite":
+    elif mood == "quick_bites":
         radius = 4000
-    if mood == "budget":
-        radius = 6500
+    elif mood == "pocket_friendly":
+        radius = 7000
+    elif mood == "calm":
+        radius = 6000
+    elif mood == "high_adrenaline":
+        radius = 7000
+    elif mood == "exploring":
+        radius = 9000
+    elif mood == "late_night":
+        radius = 5000
 
     raw = fetch_places_for_mood(mood, user_lat, user_lon, radius)
 
